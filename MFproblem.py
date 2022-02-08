@@ -1,21 +1,16 @@
 #################
 #### Imports ####
 #################
-
+import numpy as np
 import torch
+from torch import Tensor
 from torch.quasirandom import SobolEngine
 
-import numpy as np
-import matplotlib.pyplot as plt
-
-from gpytorch.mlls.exact_marginal_log_likelihood import ExactMarginalLogLikelihood
+from botorch.models.gp_regression import SingleTaskGP
 from gpytorch.kernels.scale_kernel import ScaleKernel
-from gpytorch.kernels.rq_kernel import RQKernel
-from gpytorch.kernels.rbf_kernel import RBFKernel
-from gpytorch.kernels.matern_kernel import MaternKernel
+from gpytorch.mlls.exact_marginal_log_likelihood import ExactMarginalLogLikelihood
 from gpytorch.kernels.linear_kernel import LinearKernel
 
-from botorch.acquisition.analytic import UpperConfidenceBound
 from botorch.acquisition import PosteriorMean
 from botorch.acquisition.fixed_feature import FixedFeatureAcquisitionFunction
 from botorch.acquisition.max_value_entropy_search import qMaxValueEntropy, qMultiFidelityMaxValueEntropy
@@ -25,18 +20,11 @@ from botorch.models.transforms.outcome import Standardize
 from botorch.models.transforms.input import Normalize
 from botorch.optim.optimize import optimize_acqf
 from botorch.optim.optimize import optimize_acqf_mixed
-from botorch.test_functions.multi_fidelity import AugmentedBranin
-from botorch import fit_gpytorch_model
 
 from botorch.models.multitask import MultiTaskGP
-from botorch.models.multitask import KroneckerMultiTaskGP
 from botorch.models.gp_regression_fidelity import SingleTaskMultiFidelityGP
 
-from cokgj import *
-
-from sklearn.metrics import r2_score
-
-# from augmented_functions import *
+from cokgj import CoKrigingGP
 
 #########################################
 #### Problem & associated parameters ####
@@ -47,24 +35,28 @@ tkwargs = {
     # "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     "device": torch.device("cpu"),
 }
-SMOKE_TEST = True # os.environ.get("SMOKE_TEST")
+SMOKE_TEST = True  # os.environ.get("SMOKE_TEST")
 
 NUM_RESTARTS = 10 if not SMOKE_TEST else 2
 RAW_SAMPLES = 512 if not SMOKE_TEST else 4
+
 
 class MFProblem:
     def __init__(
             self,
             objective_function,
+            cost_ratio=2,
             fidelities: Tensor = None,
     ):
         self.objective_function = objective_function
-        self.fidelities = fidelities if fidelities is not None else torch.tensor([0.8, 1.0], **tkwargs)
+        self.fidelities = fidelities if fidelities is not None else torch.tensor([0.5, 1.0], **tkwargs)
 
         bounds = torch.tensor(objective_function._bounds, **tkwargs).transpose(0, 1)
+        lf = self.fidelities[0]
+        a = (1 - 1 / cost_ratio) / (1 - lf)
         cost_model = AffineFidelityCostModel(fidelity_weights={
-            objective_function.dim - 1: 1 / (2 * (1 - self.fidelities[0]))
-        }, fixed_cost=1 - 1 / (2 * (1 - self.fidelities[0])))
+            objective_function.dim - 1: a
+        }, fixed_cost=1 - a)
         cost_aware_utility = InverseCostWeightedUtility(cost_model=cost_model)
 
         self.bounds = bounds
@@ -96,25 +88,19 @@ class MFProblem:
             train_f = self.fidelities[torch.bernoulli(p).long()]
         else:
             soboleng = SobolEngine(dimension=self.objective_function.dim - 1, scramble=scramble)
-            # train_x = soboleng.draw(n)
-            train_x = soboleng.draw(n_tot)
+            train_x = soboleng.draw(n_tot).to(**tkwargs)
 
             indices = torch.zeros((n_tot, 1))
             for i in range(len(indices)):
-                # if i % lf_mult == 0:
-                # if i / n < 1 / lf_mult:
-                # if i * lf_mult < n:
                 if i < n:
                     indices[i] = 1
             train_f = self.fidelities[indices.long()]
 
         for x in train_x:
             for i in range(len(x)):
-                x[i] = (bds[i][1] - bds[i][0]) * x[i] + bds[i][0] # input scaling
+                x[i] = (bds[i][1] - bds[i][0]) * x[i] + bds[i][0]  # input scaling
 
         if nested_doe:
-            # train_x = torch.cat((train_x[:n // lf_mult], train_x[:n - n // lf_mult]))
-            # self.lf_data_volume = n // lf_mult
             train_x = torch.cat((train_x[:n], train_x[:n_tot - n]))
 
         train_x_full = torch.cat((train_x, train_f), dim=1)
@@ -137,7 +123,7 @@ class MFProblem:
     ##################################
 
     def initialize_model(self, train_x, train_obj, model_type='cokg', noise_fix=True):
-        bds = None # torch.Tensor(np.array(problem._bounds).T)
+        bds = None
 
         if model_type == 'cokg':
             model = CoKrigingGP(
@@ -148,14 +134,6 @@ class MFProblem:
                 noise_fix=noise_fix,
             )
 
-        # elif model_type == 'mtask_icm':
-        #     model = KroneckerMultiTaskGP(
-        #         train_x,
-        #         train_obj,
-        #         input_transform=Normalize(d=self.objective_function.dim, bounds=bds),
-        #         outcome_transform=Standardize(m=1),
-        #     )
-
         elif model_type == 'mtask':
             train_x[:, -1] = torch.floor(train_x[:, -1])
             model = MultiTaskGP(
@@ -165,6 +143,40 @@ class MFProblem:
                 input_transform=Normalize(d=self.objective_function.dim, bounds=bds),
                 outcome_transform=Standardize(m=1),
             )
+
+        elif model_type == 'sogpr':
+            n = torch.sum(train_x[:, -1] == 1)
+            model = SingleTaskGP(
+                train_x[:n, :-1],
+                train_obj[:n],
+                input_transform=Normalize(d=self.objective_function.dim - 1, bounds=bds),
+                outcome_transform=Standardize(m=1),
+                covar_module=ScaleKernel(LinearKernel())
+            )
+
+        else:
+            model = SingleTaskMultiFidelityGP(
+                train_x,
+                train_obj,
+                input_transform=Normalize(d=self.objective_function.dim, bounds=bds),
+                outcome_transform=Standardize(m=1),
+                data_fidelity=self.objective_function.dim - 1,
+                linear_truncated=False
+            )
+
+        if model_type == 'cokg_dms':
+            mll = [ExactMarginalLogLikelihood(m.likelihood, m) for m in model]
+        else:
+            mll = ExactMarginalLogLikelihood(model.likelihood, model)
+
+        ### Purgatory ###
+        # elif model_type == 'nlcokg':
+        #     model = NLCoKrigingGP(
+        #         train_X=train_x,
+        #         train_Y=train_obj,
+        #         input_transform=Normalize(d=self.objective_function.dim, bounds=bds),
+        #         outcome_transform=Standardize(m=1),
+        #     )
 
         # elif model_type == 'cokg_dms':
         #     models = CoKrigingGP_DMS(
@@ -189,36 +201,15 @@ class MFProblem:
         #     #             prev_model=model[i - 1],
         #     #         )
         #     #     )
-        elif model_type == 'sogpr':
-            n = torch.sum(train_x[:, -1] == 1)
-            model = SingleTaskGP(
-                train_x[:n, :-1],
-                train_obj[:n],
-                input_transform=Normalize(d=self.objective_function.dim - 1, bounds=bds),
-                outcome_transform=Standardize(m=1),
-                covar_module=ScaleKernel(LinearKernel())
-            )
-        # elif model_type == 'nlcokg':
-        #     model = NLCoKrigingGP(
-        #         train_X=train_x,
-        #         train_Y=train_obj,
+
+        # elif model_type == 'mtask_icm':
+        #     model = KroneckerMultiTaskGP(
+        #         train_x,
+        #         train_obj,
         #         input_transform=Normalize(d=self.objective_function.dim, bounds=bds),
         #         outcome_transform=Standardize(m=1),
         #     )
-        else:
-            model = SingleTaskMultiFidelityGP(
-                train_x,
-                train_obj,
-                input_transform=Normalize(d=self.objective_function.dim, bounds=bds),
-                outcome_transform=Standardize(m=1),
-                data_fidelity=self.objective_function.dim - 1,
-                linear_truncated=False
-            )
 
-        if model_type == 'cokg_dms':
-            mll = [ExactMarginalLogLikelihood(m.likelihood, m) for m in model]
-        else:
-            mll = ExactMarginalLogLikelihood(model.likelihood, model)
         return mll, model
 
     ##############################
@@ -239,17 +230,7 @@ class MFProblem:
                 num_fantasies=128 if not SMOKE_TEST else 2,
                 cost_aware_utility=self.cost_aware_utility,
             )
-
-            # acq = UpperConfidenceBound(
-            #     model=model,
-            #     beta=2,
-            # )
         else:
-            # acq = UpperConfidenceBound(
-            #     model=model,
-            #     beta=2,
-            # )
-
             acq = qMaxValueEntropy(
                 model=model,
                 candidate_set=candidate_set,
@@ -270,9 +251,9 @@ class MFProblem:
             aug_bounds = torch.hstack((self.bounds, torch.tensor([[0], [1]])))
             candidates, _ = optimize_acqf_mixed(
                 acq_function=acq_f,
-                # bounds=self.bounds,
                 bounds=aug_bounds,
-                fixed_features_list=[{self.objective_function.dim - 1: float(self.fidelities[0])}, {self.objective_function.dim - 1: 1.0}],
+                fixed_features_list=[{self.objective_function.dim - 1: float(self.fidelities[0])},
+                                     {self.objective_function.dim - 1: 1.0}],
                 q=1,
                 num_restarts=NUM_RESTARTS,
                 raw_samples=RAW_SAMPLES,
@@ -281,12 +262,10 @@ class MFProblem:
             )
             # observe new values
             cost = self.cost_model(candidates).sum()
-            print(self.fidelities)
-            print(cost)
-            new_x = candidates#.detach()
+            # print(self.fidelities)
+            # print(cost)
+            new_x = candidates
             new_obj = self.objective_function(new_x).unsqueeze(-1)
-            # print(f"candidates:\n{new_x}\n")
-            # print(f"observations:\n{new_obj}\n\n")
         else:
             candidates, _ = optimize_acqf(
                 acq_function=acq_f,
@@ -297,11 +276,6 @@ class MFProblem:
             )
             new_x = candidates[0]
             new_obj = self.objective_function(torch.cat([new_x, torch.tensor([1])])).unsqueeze(-1)[:, None]
-            # new_obj = self.objective_function(torch.tensor([[new_x, 1]])).unsqueeze(-1)
-
-        # print()
-        # print(new_x)
-        # print(new_obj)
         return new_x, new_obj, cost
 
     #####################
@@ -328,5 +302,4 @@ class MFProblem:
         final_rec = rec_acqf._construct_X_full(final_rec)
 
         objective_value = self.objective_function(final_rec)
-        # print(f"recommended point:\n{final_rec}\n\nobjective value:\n{objective_value}")
         return final_rec

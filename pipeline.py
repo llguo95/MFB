@@ -3,6 +3,12 @@ import torch
 from matplotlib import pyplot as plt
 from sklearn.preprocessing import StandardScaler
 
+from botorch import fit_gpytorch_model
+import GPy
+import gpytorch
+from emukit.multi_fidelity.models import NonLinearMultiFidelityModel
+from emukit.multi_fidelity.models.non_linear_multi_fidelity_model import make_non_linear_kernels
+
 tkwargs = {
     "dtype": torch.double,
     # "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
@@ -30,7 +36,6 @@ def pretrainer(
         bds,
         dim,
 ):
-
     problem_el.fidelities = torch.tensor([lf_el, 1.0], **tkwargs)
 
     train_x, train_obj = problem_el.generate_initial_data(
@@ -45,13 +50,15 @@ def pretrainer(
     train_y_low, train_y_high = [], []
     for i in range(len(train_x)):
         if train_x[i][-1] != 1.0:
-            train_x_low.append(train_x[i][:-1].numpy())
-            train_y_low.append(train_obj[i].numpy())
+            train_x_low.append(train_x[i][:-1].cpu().numpy())
+            train_y_low.append(train_obj[i].cpu().numpy())
         else:
-            train_x_high.append(train_x[i][:-1].numpy())
-            train_y_high.append(train_obj[i].numpy())
+            train_x_high.append(train_x[i][:-1].cpu().numpy())
+            train_y_high.append(train_obj[i].cpu().numpy())
     train_x_low, train_x_high = np.array(train_x_low), np.array(train_x_high)
     train_y_low, train_y_high = np.array(train_y_low), np.array(train_y_high)
+
+    bds = bds.cpu()
 
     test_x_axes = [np.linspace(bds[0, k], bds[1, k], int(n_inf ** (1 / (dim - 1)))) for k in range(dim - 1)]
 
@@ -59,14 +66,14 @@ def pretrainer(
 
     test_x_list = np.hstack([layer.reshape(-1, 1) for layer in test_x])
 
-    lf_vec = problem_el.fidelities[0] * np.ones((np.shape(test_x_list)[0], 1))
+    lf_vec = problem_el.fidelities[0].cpu() * np.ones((np.shape(test_x_list)[0], 1))
     hf_vec = np.ones((np.shape(test_x_list)[0], 1))
 
     test_x_list_low = np.concatenate((test_x_list, lf_vec), axis=1)
     test_x_list_high = np.concatenate((test_x_list, hf_vec), axis=1)
 
-    exact_y_low = problem_el.objective_function(torch.Tensor(test_x_list_low)).detach().numpy()
-    exact_y = problem_el.objective_function(torch.Tensor(test_x_list_high)).detach().numpy()
+    exact_y_low = problem_el.objective_function(torch.Tensor(test_x_list_low)).cpu().detach().numpy()
+    exact_y = problem_el.objective_function(torch.Tensor(test_x_list_high)).cpu().detach().numpy()
 
     ### Scaling ###
     test_x_list_scaled = None
@@ -90,14 +97,6 @@ def pretrainer(
 
     return train_x, train_y_high, train_obj, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high, exact_y
 
-import numpy as np
-from botorch import fit_gpytorch_model
-import GPy
-import gpytorch
-from emukit.multi_fidelity.models import NonLinearMultiFidelityModel
-from emukit.multi_fidelity.models.non_linear_multi_fidelity_model import make_non_linear_kernels
-
-
 def trainer(
         train_x,
         train_obj,
@@ -108,11 +107,6 @@ def trainer(
         lf_jitter,
 ):
     if model_type_el == 'cokg_dms':
-
-        # mll, model = problem_el.initialize_model(train_x, train_obj,
-        #                                          model_type=model_type_el, noise_fix=noise_fix)
-
-        # kernels_RL = [GPy.kern.RBF(dim - 1) for _ in range(2)]
         kernels_RL = [GPy.kern.RBF(dim - 1) + GPy.kern.White(dim - 1), GPy.kern.RBF(dim - 1)]
         model = GPy.models.multiGPRegression(
             train_x,
@@ -121,10 +115,8 @@ def trainer(
         )
 
         if noise_fix:
-            # for model in model_dms.models: model.Gaussian_noise.variance.fix(1e-4)
             model.models[1].Gaussian_noise.variance.fix(lf_jitter)
         model.optimize()
-        # model_dms.optimize_restarts(restarts=10, verbose=False)
 
     elif model_type_el == 'nlcokg':
 
@@ -139,12 +131,11 @@ def trainer(
         kernels = make_non_linear_kernels(base_kernel, 2, dim - 1)
 
         model = NonLinearMultiFidelityModel(train_X_scaled,
-                                                      train_Y_scaled,
-                                                      n_fidelities=2, kernels=kernels,
-                                                      verbose=False, optimization_restarts=10
-                                                      )
+                                            train_Y_scaled,
+                                            n_fidelities=2, kernels=kernels,
+                                            verbose=False, optimization_restarts=10
+                                            )
         if noise_fix:
-            # for m in nonlin_mf_model.models: m.Gaussian_noise.variance.fix(1e-4)
             model.models[1].Gaussian_noise.variance.fix(lf_jitter)
         model.optimize()
 
@@ -157,18 +148,21 @@ def trainer(
         fit_gpytorch_model(mll)
     return model
 
+
 import numpy as np
 import torch
 from scipy.stats import norm
 
+
 def ei(mean_x, var_x, f_inc):
-    mean_x = -mean_x # minimization
+    mean_x = -mean_x  # minimization
     Delta = mean_x - f_inc
     std = np.sqrt(np.abs(var_x))
     res = np.maximum(Delta, np.zeros(Delta.shape)) \
           + std * norm.pdf(Delta / std) \
           - np.abs(Delta) * norm.cdf(Delta / std)
     return res
+
 
 def posttrainer(
         model,
@@ -194,55 +188,16 @@ def posttrainer(
         test_y_var_list_high = model.posterior(torch.from_numpy(test_x_list)).variance.detach().numpy()[:, 1][:, None]
 
     elif model_type_el == 'sogpr':
-        test_y_list_high = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()
-        test_y_var_list_high = model.posterior(
-            torch.from_numpy(test_x_list)).mvn.covariance_matrix.diag().detach().numpy()[:, None]
+        test_y_list_high = model.posterior(torch.from_numpy(test_x_list).to(**tkwargs)).mean.cpu().detach().numpy()
+        test_y_var_list_high = model.posterior(torch.from_numpy(test_x_list).to(**tkwargs)).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]
 
     else:
-        test_y_list_high = model.posterior(torch.from_numpy(test_x_list_high)).mean.detach().numpy()
+        test_y_list_high = model.posterior(torch.from_numpy(test_x_list_high).to(**tkwargs)).mean.cpu().detach().numpy()
         test_y_var_list_high = model.posterior(
-            torch.from_numpy(test_x_list_high)).mvn.covariance_matrix.diag().detach().numpy()[:, None]
+            torch.from_numpy(test_x_list_high).to(**tkwargs)).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]
 
     return test_y_list_high, test_y_var_list_high
 
-    # ########################
-    # ### Post-processing ####
-    # ########################
-    #
-    # # r2 = r2_score(test_y_list_high, exact_y)
-    # # print('r2 score for ' + model_type, r2)
-    #
-    # # RAAE = np.mean(np.abs(exact_y.reshape(np.shape(test_y_list_high)) - test_y_list_high)) / np.std(
-    # #     test_y_list_high)
-    # RAAE = np.mean(np.abs(exact_y.reshape(np.shape(test_y_list_high)) - test_y_list_high)) / np.std(
-    #     exact_y)
-    # # print('RAAE score for ' + model_type, RAAE)
-    #
-    # rel_mean_std = np.mean(np.sqrt(np.abs(test_y_var_list_high))) / (max(exact_y) - min(exact_y))
-    # # print(rel_mean_std)
-    #
-    # # n_DoE_RAAE_data.append(RAAE)
-    # # n_DoE_RMSTD_data.append(rel_mean_std)
-    #
-    # ########################################
-    # ### One-step acquisition calculation ###
-    # ########################################
-    #
-    # acq_ei = ei(
-    #     mean_x=test_y_list_high,
-    #     var_x=test_y_var_list_high,
-    #     f_inc=np.amax(train_y_high)
-    # )
-    #
-    # # print(acq_ei)
-    # if max(acq_ei) != min(acq_ei):
-    #     acq_ei_norm = (acq_ei - min(acq_ei)) / (max(acq_ei) - min(acq_ei))
-    # else:
-    #     acq_ei_norm = acq_ei
-    #
-    # # acq_ag += acq_ei_norm
-    # # RMSTD_ag += rel_mean_std
-    # # RAAE_ag += RAAE
 
 def acq_visualizer(_, test_x_list, test_y_list_high, test_y_var_list_high, exact_y, acq_ei_norm, acq_ucb_norm):
     if _ == 0:

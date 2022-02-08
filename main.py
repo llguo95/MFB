@@ -1,14 +1,10 @@
 import numpy as np
-import pandas as pd
 import torch
-from matplotlib import pyplot as plt
-from scipy.stats import norm, iqr
+from scipy.stats import norm
 
 from gpytorch.constraints.constraints import Interval
 
 from botorch import fit_gpytorch_model
-import botorch.acquisition
-from botorch.models import gpytorch
 from pybenchfunction import function
 
 from scipy.stats.mstats import gmean
@@ -26,7 +22,6 @@ tkwargs = {
     "device": torch.device("cpu"),
 }
 
-
 def ei(mean_x, var_x, f_inc):
     mean_x = -mean_x  # minimization
     Delta = mean_x - f_inc
@@ -41,18 +36,17 @@ def ucb(mean_x, var_x, kappa):
     res = mean_x - kappa * np.sqrt(np.abs(var_x))
     return res
 
-vis = 1
+vis = 0
 
 def reg_main(
         problem=None, model_type=None, lf=None, n_reg=None, n_reg_lf=None, scramble=False, random=False,
-        n_inf=500, noise_fix=True, lf_jitter=1e-4, exp_name='test'
+        n_inf=500, noise_fix=True, lf_jitter=1e-4,
 ):
     if problem is None:
         problem = [
             MFProblem(
                 objective_function=AugmentedTestFunction(
                     botorch_TestFunction(
-                        # function.Schwefel(d=1), negate=False
                         function.Ackley(d=1), negate=False
                     )
                 ).to(**tkwargs)
@@ -103,16 +97,6 @@ def reg_main(
             for lf_el in lf:
                 print()
                 print('lf =', lf_el)
-                # n_reg_data = []
-
-                # diff_data = []
-                # diff_loc_data = []
-
-                # RAAE_data = []
-                # RMSTD_data = []
-                # ei_data = []
-                # x_rec_data = []
-                # y_rec_data = []
 
                 n_reg_data = {}
                 RAAE_stats_dict = {}
@@ -125,7 +109,6 @@ def reg_main(
 
                     n_DoE_RAAE_data = []
                     n_DoE_RMSTD_data = []
-                    # n_DoE_ei_data = []
                     n_DoE_x_rec_data = {
                         'ei': [],
                         'ucb': [],
@@ -166,19 +149,7 @@ def reg_main(
                         RAAE = np.mean(np.abs(exact_y.reshape(np.shape(test_y_list_high)) - test_y_list_high)) / np.std(
                             exact_y)
 
-                        # print(RAAE)
-
                         RMSTD = np.mean(np.sqrt(np.abs(test_y_var_list_high))) / (max(exact_y) - min(exact_y))
-
-                        # if model_type_el == 'cokg':
-                        #     test_x_unit = torch.linspace(0, 1, n_inf)[:, None]
-                        #
-                        #     # test_ei = botorch.acquisition.ExpectedImprovement(model, best_f=np.amax(train_y_high))
-                        #     # test_ei_eval = np.array([test_ei.forward(torch.tensor(np.expand_dims(el, axis=1))).detach().numpy() for el in test_x_list])
-                        #     # print(test_ei_eval)
-                        #     test_ucb = botorch.acquisition.UpperConfidenceBound(model, beta=2)
-                        #     test_ucb_eval = np.array([test_ucb.forward(torch.tensor(np.expand_dims(el, axis=1))).detach().numpy() for el in test_x_unit])
-                        #     print(test_ucb_eval)
 
                         acq_ei = ei(
                             mean_x=test_y_list_high,
@@ -186,113 +157,88 @@ def reg_main(
                             f_inc=np.amax(train_y_high)
                         )
 
-                        # print(acq_ei)
-
                         acq_ucb = ucb(
                             mean_x=test_y_list_high,
                             var_x=test_y_var_list_high,
                             kappa=2
                         )
 
-                        # print(acq_ucb)
-
                         if max(acq_ei) != min(acq_ei):
                             acq_ei_norm = (acq_ei - min(acq_ei)) / (max(acq_ei) - min(acq_ei))
-                            # test_ei_eval_norm = (test_ei_eval - min(test_ei_eval)) / (max(test_ei_eval) - min(test_ei_eval))
                         else:
                             acq_ei_norm = acq_ei
-                            # test_ei_eval_norm = test_ei_eval
 
                         if max(acq_ucb) != min(acq_ucb):
                             acq_ucb_norm = (acq_ucb - min(acq_ucb)) / (max(acq_ucb) - min(acq_ucb))
                         else:
                             acq_ucb_norm = acq_ucb
 
-                        if vis:  # n_reg_el == 30:
-                            if _ == 0:
-                                fig, axs = plt.subplots(nrows=3, ncols=1, sharex='all')
-
-                            axs[0].plot(test_x_list, test_y_list_high, 'k--', alpha=.25)
-                            axs[0].fill_between(test_x_list.flatten(),
-                                                (test_y_list_high - 2 * np.sqrt(
-                                                    np.abs(test_y_var_list_high))).flatten(),
-                                                (test_y_list_high + 2 * np.sqrt(
-                                                    np.abs(test_y_var_list_high))).flatten(),
-                                                color='k', alpha=.05)
-
-                            axs[0].plot(test_x_list, exact_y, 'k', linewidth=.5)
-                            axs[0].scatter(
-                                test_x_list[np.argmin(exact_y)], np.amin(exact_y), marker='o', c='r',
-                                zorder=np.iinfo(np.int32).max
-                            )
-                            axs[0].set_title('Objective')
-
-                            c = (np.amax(exact_y) - np.amin(exact_y)) / 5
-                            axs[0].set_ylim([np.amin(exact_y) - c, np.amax(exact_y) + c])
-
-                            axs[1].scatter(
-                                test_x_list, acq_ei_norm, marker='s', facecolors='none', edgecolors='k',
-                                s=10, alpha=.2
-                            )
-
-                            axs[1].set_title('EI')
-
-                            axs[1].scatter(
-                                test_x_list[np.argmax(acq_ei_norm)], np.amax(acq_ei_norm), marker='s',
-                                facecolors='none', edgecolors='r',
-                                s=30, zorder=np.iinfo(np.int32).max
-                            )
-
-                            axs[2].scatter(
-                                test_x_list, acq_ucb_norm, marker='d', facecolors='none', edgecolors='k',
-                                s=10, alpha=.2
-                            )
-
-                            axs[2].scatter(
-                                test_x_list[np.argmax(acq_ucb_norm)], np.amax(acq_ucb_norm), marker='d',
-                                facecolors='none', edgecolors='r',
-                                s=30, zorder=np.iinfo(np.int32).max
-                            )
-
-                            axs[2].set_title('UCB')
-
-                            plt.tight_layout()
+                        # if vis:
+                        #     if _ == 0:
+                        #         fig, axs = plt.subplots(nrows=3, ncols=1, sharex='all')
+                        #
+                        #     axs[0].plot(test_x_list, test_y_list_high, 'k--', alpha=.25)
+                        #     axs[0].fill_between(test_x_list.flatten(),
+                        #                         (test_y_list_high - 2 * np.sqrt(
+                        #                             np.abs(test_y_var_list_high))).flatten(),
+                        #                         (test_y_list_high + 2 * np.sqrt(
+                        #                             np.abs(test_y_var_list_high))).flatten(),
+                        #                         color='k', alpha=.05)
+                        #
+                        #     axs[0].plot(test_x_list, exact_y, 'k', linewidth=.5)
+                        #     axs[0].scatter(
+                        #         test_x_list[np.argmin(exact_y)], np.amin(exact_y), marker='o', c='r',
+                        #         zorder=np.iinfo(np.int32).max
+                        #     )
+                        #     axs[0].set_title('Objective')
+                        #
+                        #     c = (np.amax(exact_y) - np.amin(exact_y)) / 5
+                        #     axs[0].set_ylim([np.amin(exact_y) - c, np.amax(exact_y) + c])
+                        #
+                        #     axs[1].scatter(
+                        #         test_x_list, acq_ei_norm, marker='s', facecolors='none', edgecolors='k',
+                        #         s=10, alpha=.2
+                        #     )
+                        #
+                        #     axs[1].set_title('EI')
+                        #
+                        #     axs[1].scatter(
+                        #         test_x_list[np.argmax(acq_ei_norm)], np.amax(acq_ei_norm), marker='s',
+                        #         facecolors='none', edgecolors='r',
+                        #         s=30, zorder=np.iinfo(np.int32).max
+                        #     )
+                        #
+                        #     axs[2].scatter(
+                        #         test_x_list, acq_ucb_norm, marker='d', facecolors='none', edgecolors='k',
+                        #         s=10, alpha=.2
+                        #     )
+                        #
+                        #     axs[2].scatter(
+                        #         test_x_list[np.argmax(acq_ucb_norm)], np.amax(acq_ucb_norm), marker='d',
+                        #         facecolors='none', edgecolors='r',
+                        #         s=30, zorder=np.iinfo(np.int32).max
+                        #     )
+                        #
+                        #     axs[2].set_title('UCB')
+                        #
+                        #     plt.tight_layout()
 
                         x_next_ei = test_x_list[np.argmax(acq_ei_norm)]
-                        y_next_ei = problem_el.objective_function(torch.tensor([x_next_ei[0], 1])).detach().numpy()
+                        y_next_ei = problem_el.objective_function(torch.tensor([x_next_ei[0], 1])).cpu().detach().numpy()
 
                         x_next_ucb = test_x_list[np.argmax(acq_ucb_norm)]
-                        y_next_ucb = problem_el.objective_function(torch.tensor([x_next_ucb[0], 1])).detach().numpy()
+                        y_next_ucb = problem_el.objective_function(torch.tensor([x_next_ucb[0], 1])).cpu().detach().numpy()
 
                         n_DoE_RAAE_data.append(RAAE)
                         n_DoE_RMSTD_data.append(RMSTD)
-                        # n_DoE_ei_data.append(acq_ei)
 
                         x_opt, y_opt = problem_el.objective_function.opt(d=dim - 1)
 
                         n_DoE_x_rec_data['ei'].append(x_next_ei)
                         n_DoE_x_rec_data['ucb'].append(x_next_ucb)
 
-                        # print()
-                        #
-                        # print(y_next_ucb)
-                        # print(y_opt)
-                        #
-                        # print(np.abs(y_next_ucb - y_opt))
-                        # print((np.amax(exact_y) - y_opt))
-                        #
-                        # print(np.abs(y_next_ucb - y_opt) / (np.amax(exact_y) - y_opt))
-
                         n_DoE_y_rec_data['ei'].append(np.abs(y_next_ei - y_opt) / (np.amax(exact_y) - y_opt))
                         n_DoE_y_rec_data['ucb'].append(np.abs(y_next_ucb - y_opt) / (np.amax(exact_y) - y_opt))
-
-                    # print(n_DoE_RMSTD_data)
-                    # print(np.mean(n_DoE_RMSTD_data))
-                    # print(gmean(n_DoE_RMSTD_data))
-                    # print(np.median(n_DoE_RMSTD_data))
-
-                    # print(n_DoE_RAAE_data)
-                    # print(iqr(n_DoE_RAAE_data))
 
                     RAAE_stats_dict['amean'] = np.mean(n_DoE_RAAE_data)
                     RAAE_stats_dict['gmean'] = gmean(n_DoE_RAAE_data)
@@ -310,12 +256,6 @@ def reg_main(
                     ucb_stats_dict['median'] = np.median(n_DoE_y_rec_data['ucb'])
                     ucb_stats_dict['quantiles'] = [np.quantile(n_DoE_y_rec_data['ucb'], q=.25), np.quantile(n_DoE_y_rec_data['ucb'], q=.75)]
 
-                    # RAAE_data.append(RAAE_stats_dict)
-                    # RMSTD_data.append(RMSTD_stats_dict)
-                    # ei_data.append(np.array(n_DoE_ei_data))
-                    # x_rec_data.append(n_DoE_x_rec_data)
-                    # y_rec_data.append(n_DoE_y_rec_data)
-
                     n_reg_data[(n_reg_el, n_reg_lf_el)] = {
                         'RAAE_stats': RAAE_stats_dict.copy(),
                         'RMSTD_stats': RMSTD_stats_dict.copy(),
@@ -323,15 +263,9 @@ def reg_main(
                         'ucb_stats': ucb_stats_dict.copy(),
                     }
 
-                # n_reg_data.append(np.array(ei_data))
-                # n_reg_data.append(x_rec_data)
-                # n_reg_data.append(y_rec_data)
-
                 lf_data[lf_el] = n_reg_data
             problem_data[problem_el.objective_function.name] = lf_data
         model_type_data[model_type_el] = problem_data
-
-    # if vis: plt.show()
 
     return model_type_data, metadata_dict
 
@@ -344,7 +278,7 @@ def scale_to_unit(x, bds):
         el_c += 1
     return res
 
-def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, n_iter=None, scramble=True,
+def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=True,
             n_inf=500, random=False, noise_fix=True, n_reg_lf_init=None, budget=25,):
     if problem is None:
         problem = [
@@ -369,9 +303,6 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, n_iter=None
     if n_reg_lf_init is None:
         n_reg_lf_init = [30]
 
-    if n_iter is None:
-        n_iter = [15]
-
     metadata_dict = {
         'problem': [p.objective_function.name for p in problem],
         'model_type': model_type,
@@ -386,8 +317,6 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, n_iter=None
 
     model_type_data = {}
     for model_type_el in model_type:
-        # print()
-        # print(model_type_el)
 
         problem_data = {}
         for problem_el in problem:
@@ -400,24 +329,19 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, n_iter=None
 
                 n_reg_init_data = {}
                 for n_reg_init_el, n_reg_lf_init_el in zip(n_reg_init, n_reg_lf_init):
-                    # for n_iter_el in n_iter:
                     problem_el.fidelities = torch.tensor([lf_el, 1.0], **tkwargs)
 
-                    (train_x, train_y_high, train_obj, test_x_list, test_x_list_scaled, test_x_list_high,
-                     scaler_y_high,
-                     exact_y) = pretrainer(
+                    (train_x, train_y_high, train_obj,
+                     test_x_list, test_x_list_scaled, test_x_list_high,
+                     scaler_y_high, exact_y) = pretrainer(
                         problem_el, model_type_el, n_reg_init_el, n_reg_lf_init_el, lf_el, random,
                         scramble, n_inf, bds, dim,
                     )
 
-                    train_x_high = torch.tensor([]) # train_x[:n_reg_init_el]
-                    train_obj_high = torch.tensor([]) # train_obj[:n_reg_init_el]
-
-                    # train_x, train_obj = problem_el.generate_initial_data(n=n_reg_init_el, n_lf=n_reg_lf_init_el, random=random)
+                    train_x_high = torch.tensor([])
+                    train_obj_high = torch.tensor([])
 
                     cumulative_cost = 0.0
-                    # cost_history = np.zeros((n_iter_el,))
-                    # for _ in range(n_iter_el):
 
                     opt_data = {}
                     _ = 0
@@ -429,30 +353,17 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, n_iter=None
                             model.likelihood.noise_covar.register_constraint("raw_noise", cons)
                         fit_gpytorch_model(mll)
 
-                        (test_y_list_high, test_y_var_list_high) = posttrainer(
-                            model, model_type_el, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high,
-                        )
-
-                        # acq_ucb = ucb(test_y_list_high, test_y_var_list_high, kappa=2)
-                        # if max(acq_ucb) != min(acq_ucb):
-                        #     acq_ucb_norm = (acq_ucb - min(acq_ucb)) / (max(acq_ucb) - min(acq_ucb))
-                        # else:
-                        #     acq_ucb_norm = acq_ucb
-                        #
-                        # x_next_ucb = test_x_list[np.argmax(acq_ucb_norm)]
-                        # y_next_ucb = problem_el.objective_function(
-                        #     torch.tensor([x_next_ucb[0], 1])).detach().numpy()
+                        # (test_y_list_high, test_y_var_list_high) = posttrainer(
+                        #     model, model_type_el, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high,
+                        # )
 
                         mfacq = problem_el.get_mfacq(model)
                         new_x, new_obj, cost = problem_el.optimize_mfacq_and_get_observation(mfacq)
-
-                        # print(new_x, new_obj)
 
                         if model_type_el is not 'sogpr':
                             train_x = torch.cat([train_x, new_x])
                             train_obj = torch.cat([train_obj, new_obj])
                             cumulative_cost += cost
-                            # cost_history[_] = cumulative_cost
 
                             if new_x[0][-1] == 1:
                                 train_x_high = torch.cat([train_x_high, new_x])
@@ -466,82 +377,52 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, n_iter=None
                             train_x_high = torch.cat([train_x_high, new_x])
                             train_obj_high = torch.cat([train_obj_high, new_obj])
 
-                        if vis:# \
-                                # and torch.amax(train_obj[n_reg_init_el + n_reg_lf_init_el:-1]) < train_obj[-1]:
-                            # print('New minimum!')
-                            plt.figure(model_type_el)
-                            if model_type_el is not 'sogpr':
-                                if new_x[0][-1] == 1:
-                                    print('Sample at highest fidelity!')
-                                    plt.scatter(new_x[0][0], -new_obj[0][0], #alpha=(_ + 1) / n_iter_el,
-                                                color='g')
-                                else:
-                                    # continue
-                                    plt.scatter(new_x[0][0], -new_obj[0][0], #alpha=(_ + 1) / n_iter_el,
-                                                color='b')
-                            else:
-                                plt.scatter(new_x[0][0], -new_obj[0][0], #alpha=(_ + 1) / n_iter_el,
-                                            color='g')
-                            plt.plot(test_x_list, -test_y_list_high, #alpha=(_ + 1) / n_iter_el,
-                                     color='r')
-                            plt.fill_between(test_x_list.flatten(),
-                                             (-test_y_list_high - 2 * np.sqrt(
-                                                 np.abs(test_y_var_list_high))).flatten(),
-                                             (-test_y_list_high + 2 * np.sqrt(
-                                                 np.abs(test_y_var_list_high))).flatten(),
-                                             color='k', alpha=.05 #* (_ + 1) / n_iter_el
-                                             )
-                            plt.plot(test_x_list, -exact_y, 'k--')
-                        # print(new_x)
-                        # print(new_obj)
+                        # if vis:
+                        #     plt.figure(model_type_el)
+                        #     if model_type_el is not 'sogpr':
+                        #         if new_x[0][-1] == 1:
+                        #             print('Sample at highest fidelity!')
+                        #             plt.scatter(new_x[0][0], -new_obj[0][0], #alpha=(_ + 1) / n_iter_el,
+                        #                         color='g')
+                        #         else:
+                        #             # continue
+                        #             plt.scatter(new_x[0][0], -new_obj[0][0], #alpha=(_ + 1) / n_iter_el,
+                        #                         color='b')
+                        #     else:
+                        #         plt.scatter(new_x[0][0], -new_obj[0][0], #alpha=(_ + 1) / n_iter_el,
+                        #                     color='g')
+                        #     plt.plot(test_x_list, -test_y_list_high, #alpha=(_ + 1) / n_iter_el,
+                        #              color='r')
+                        #     plt.fill_between(test_x_list.flatten(),
+                        #                      (-test_y_list_high - 2 * np.sqrt(
+                        #                          np.abs(test_y_var_list_high))).flatten(),
+                        #                      (-test_y_list_high + 2 * np.sqrt(
+                        #                          np.abs(test_y_var_list_high))).flatten(),
+                        #                      color='k', alpha=.05 #* (_ + 1) / n_iter_el
+                        #                      )
+                        #     plt.plot(test_x_list, -exact_y, 'k--')
+
                         _ += 1
 
-                    if len(train_obj_high) > 0:
-                        # print('Initial DoE EXCLUDED in calculating cumulative minimum')
-                        x_best = train_x_high[torch.argmax(train_obj_high)]
-                        y_best = -train_obj_high[torch.argmax(train_obj_high)]
-                    else:
-                        # print('Initial DoE INCLUDED in calculating cumulative minimum')
-                        x_best = train_x[torch.argmax(train_obj)]
-                        y_best = -train_obj[torch.argmax(train_obj)]
-
-                    opt_data_vol = _ - 1
-
-                    x_err_norm = np.linalg.norm(x_best[:-1] - xmin) / np.linalg.norm(problem_el.bounds[1] - problem_el.bounds[0])
-                    y_err_norm = np.linalg.norm(y_best - ymin) / (np.amax(-exact_y) - ymin)
-
-                    x_hist_norm = train_x[:, :-1]
-                    # x_hist_norm = scale_to_unit(train_x_high[:, :-1], problem_el.bounds)
-                    # x_hist_norm = np.linalg.norm(train_x_high[:, :-1] - xmin, axis=1) / np.linalg.norm(problem_el.bounds[1] - problem_el.bounds[0])
+                    # if len(train_obj_high) > 0:
+                    #     # print('Initial DoE EXCLUDED in calculating cumulative minimum')
+                    #     x_best = train_x_high[torch.argmax(train_obj_high)]
+                    #     y_best = -train_obj_high[torch.argmax(train_obj_high)]
+                    # else:
+                    #     # print('Initial DoE INCLUDED in calculating cumulative minimum')
+                    #     x_best = train_x[torch.argmax(train_obj)]
+                    #     y_best = -train_obj[torch.argmax(train_obj)]
+                    #
+                    # opt_data_vol = _ - 1
+                    #
+                    # x_err_norm = np.linalg.norm(x_best[:-1] - xmin) / np.linalg.norm(problem_el.bounds[1] - problem_el.bounds[0])
+                    # y_err_norm = np.linalg.norm(y_best - ymin) / (np.amax(-exact_y) - ymin)
+                    #
+                    # x_hist_norm = train_x[:, :-1]
                     y_hist_norm = np.linalg.norm(-train_obj - ymin, axis=1) / (np.amax(-exact_y) - ymin)
-                    # y_hist_norm = np.linalg.norm(-train_obj_high - ymin, axis=1) / (np.amax(-exact_y) - ymin)
 
-                    # print(opt_data_vol)
-                    # print(x_hist_norm)
-                    # print(y_hist_norm)
-                    # print()
-                    # print(x_best[:-1])
-                    # print(y_best)
-                    # print()
-                    # print(xmin)
-                    # print(ymin)
-                    # # print(x_best[:-1] - xmin)
-                    # print()
-                    # print(x_err_norm)
-                    # print(y_err_norm)
-                    # final_rec = None  # problem.get_recommendation(model)
-                    # if vis:
-                    #     y_hist = np.maximum.accumulate(train_obj_high[n_reg_init_el:])
-                    #     # print(y_hist)
-                    #     # print(np.abs(train_obj[n_reg_init_el + n_reg_lf_init_el:] - ymin))
-                    #     plt.figure('history')
-                    #     plt.plot(np.array(cost_history), -y_hist, 'o-',
-                    #              label=model_type_el)
-                    #     plt.legend()
                     opt_data['x_hist'] = train_x.detach().numpy()
                     opt_data['y_hist_norm'] = np.hstack((y_hist_norm[:, None], train_x[:, -1].detach().numpy()[:, None]))
-                    # opt_data['x_err_norm'] = x_err_norm
-                    # opt_data['y_err_norm'] = y_err_norm
 
                     n_reg_init_data[(n_reg_init_el, n_reg_lf_init_el)] = opt_data
 
@@ -551,4 +432,4 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, n_iter=None
 
         model_type_data[model_type_el] = problem_data
 
-    return model_type_data, metadata_dict # opt_data_vol, x_err_norm, y_err_norm
+    return model_type_data, metadata_dict

@@ -1,43 +1,33 @@
-from abc import ABC
-
-from gpytorch.distributions.multivariate_normal import MultivariateNormal
-from gpytorch.kernels.kernel import ProductKernel
-from gpytorch.kernels.rbf_kernel import RBFKernel
-from gpytorch.kernels.scale_kernel import ScaleKernel
-from gpytorch.likelihoods.likelihood import Likelihood
 from gpytorch.kernels.kernel import Kernel
 from gpytorch.kernels.scale_kernel import ScaleKernel
-from gpytorch.priors.torch_priors import GammaPrior
 
-from typing import Any, Dict, Optional, Tuple, List
+from typing import Optional
 import torch
 from torch import Tensor
 import GPy
-from GPy.models.gp_regression import multiGPRegression
 import numpy as np
 
 from emukit.multi_fidelity.kernels import LinearMultiFidelityKernel
-from emukit.multi_fidelity.models.non_linear_multi_fidelity_model import make_non_linear_kernels, NonLinearMultiFidelityModel
-
-from botorch.models.model import Model
-from botorch.models.gp_regression_fidelity import SingleTaskMultiFidelityGP
 from botorch.models.gp_regression import SingleTaskGP
 from botorch.models.transforms.input import InputTransform
 from botorch.models.transforms.outcome import OutcomeTransform
-from botorch.posteriors.posterior import Posterior
+
+tkwargs = {
+    "dtype": torch.double,
+    # "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+    "device": torch.device("cpu"),
+}
 
 class CoKrigingGP(SingleTaskGP):
     def __init__(
             self,
             train_X: Tensor,
             train_Y: Tensor,
-            # data_fidelity: Optional[int] = None,
             outcome_transform: Optional[OutcomeTransform] = None,
             input_transform: Optional[InputTransform] = None,
             noise_fix: Optional[bool] = True,
     ) -> None:
-        covar_module = ScaleKernel(CoKrigingKernel(noise_fix))#, outputscale_prior=GammaPrior(2.0, 0.15))
-        # covar_module = CoKrigingKernel()
+        covar_module = ScaleKernel(CoKrigingKernel(noise_fix))
         super().__init__(
             train_X=train_X,
             train_Y=train_Y,
@@ -45,6 +35,93 @@ class CoKrigingGP(SingleTaskGP):
             input_transform=input_transform,
             outcome_transform=outcome_transform
         )
+
+class CoKrigingKernel(Kernel):
+
+    has_lengthscale = True
+
+    def __init__(
+            self,
+            noise_fix=False,
+    ):
+        super(CoKrigingKernel, self).__init__()
+        self.noise_fix = noise_fix
+
+    def forward(self, x1, x2, diag=False, last_dim_is_batch=False, **params):
+        if self.noise_fix:
+            kernels = [
+                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
+                + GPy.kern.White(x1.shape[-1] - 1),
+                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
+            ]
+        else:
+            kernels = [
+                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
+                + GPy.kern.White(x1.shape[-1] - 1),
+                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
+                + GPy.kern.White(x1.shape[-1] - 1),
+            ]
+        lin_mf_kernel = LinearMultiFidelityKernel(kernels)
+
+        x_len = len(np.shape(x1))
+        if x_len == 4:
+            x1 = x1[0][0]
+            x2 = x2[0][0]
+        elif x_len == 3:
+            x1 = x1[0]
+            x2 = x2[0]
+
+        covar_cokg_np = lin_mf_kernel.K(x1.cpu().detach().numpy(), x2.cpu().detach().numpy()) + 1e-6
+
+        if x_len == 4:
+            covar_cokg_np = np.expand_dims(covar_cokg_np, axis=(0, 1))
+        elif x_len == 3:
+            covar_cokg_np = np.expand_dims(covar_cokg_np, axis=0)
+
+        covar_cokg = torch.from_numpy(covar_cokg_np).to(**tkwargs)
+        return covar_cokg
+
+### Purgatory ###
+
+# class CoKrigingKernel_DMS(*[Kernel]):
+#
+#     has_lengthscale = True
+#
+#     def forward(self, x1, x2, diag=False, last_dim_is_batch=False, **params):
+#         kernels = [GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.detach().numpy()),
+#                    GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.detach().numpy())]
+#         lin_mf_kernel = LinearMultiFidelityKernel(kernels)
+#
+#         x_len = len(np.shape(x1))
+#         if x_len == 4:
+#             x1 = x1[0][0]
+#             x2 = x2[0][0]
+#         elif x_len == 3:
+#             x1 = x1[0]
+#             x2 = x2[0]
+#
+#         covar_cokg_np = lin_mf_kernel.K(x1.detach().numpy(), x2.detach().numpy()) + 1e-6
+#
+#         if x_len == 4:
+#             covar_cokg_np = np.expand_dims(covar_cokg_np, axis=(0, 1))
+#         elif x_len == 3:
+#             covar_cokg_np = np.expand_dims(covar_cokg_np, axis=0)
+#
+#         covar_cokg = torch.from_numpy(covar_cokg_np)
+#         return covar_cokg
+
+# class NLCoKrigingKernel(Kernel):
+#
+#     has_lengthscale = True
+#
+#     def forward(self, x1, x2, diag=False, last_dim_is_batch=False, **params):
+#         base_kernel = GPy.kern.RBF
+#         kernels = make_non_linear_kernels(base_kernel, 2, X_train.shape[1] - 1)
+#         nonlin_mf_model = NonLinearMultiFidelityModel(X_train, Y_train, n_fidelities=2, kernels=kernels,
+#                                                       verbose=True, optimization_restarts=5)
+#         covar_cokg = None
+#         return covar_cokg
+
 
 # class CoKrigingDMS(Model):
 #     def __init__(self):
@@ -168,89 +245,3 @@ class CoKrigingGP(SingleTaskGP):
 #
 #         # Does not work... distribution is not Gaussian
 #         return MultivariateNormal(torch.from_numpy(mean_x), torch.from_numpy(covar_x))
-
-class CoKrigingKernel(Kernel):
-
-    has_lengthscale = True
-
-    def __init__(
-            self,
-            noise_fix=False,
-    ):
-        super(CoKrigingKernel, self).__init__()
-        self.noise_fix = noise_fix
-
-    def forward(self, x1, x2, diag=False, last_dim_is_batch=False, **params):
-        # kernels = [GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.detach().numpy()),
-        #            GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.detach().numpy())]
-        if self.noise_fix:
-            kernels = [
-                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.detach().numpy())
-                + GPy.kern.White(x1.shape[-1] - 1),
-                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.detach().numpy())
-            ]
-        else:
-            kernels = [
-                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.detach().numpy())
-                + GPy.kern.White(x1.shape[-1] - 1),
-                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.detach().numpy())
-                + GPy.kern.White(x1.shape[-1] - 1),
-            ]
-        lin_mf_kernel = LinearMultiFidelityKernel(kernels)
-
-        x_len = len(np.shape(x1))
-        if x_len == 4:
-            x1 = x1[0][0]
-            x2 = x2[0][0]
-        elif x_len == 3:
-            x1 = x1[0]
-            x2 = x2[0]
-
-        covar_cokg_np = lin_mf_kernel.K(x1.detach().numpy(), x2.detach().numpy()) + 1e-6
-
-        if x_len == 4:
-            covar_cokg_np = np.expand_dims(covar_cokg_np, axis=(0, 1))
-        elif x_len == 3:
-            covar_cokg_np = np.expand_dims(covar_cokg_np, axis=0)
-
-        covar_cokg = torch.from_numpy(covar_cokg_np)
-        return covar_cokg
-
-# class CoKrigingKernel_DMS(*[Kernel]):
-#
-#     has_lengthscale = True
-#
-#     def forward(self, x1, x2, diag=False, last_dim_is_batch=False, **params):
-#         kernels = [GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.detach().numpy()),
-#                    GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.detach().numpy())]
-#         lin_mf_kernel = LinearMultiFidelityKernel(kernels)
-#
-#         x_len = len(np.shape(x1))
-#         if x_len == 4:
-#             x1 = x1[0][0]
-#             x2 = x2[0][0]
-#         elif x_len == 3:
-#             x1 = x1[0]
-#             x2 = x2[0]
-#
-#         covar_cokg_np = lin_mf_kernel.K(x1.detach().numpy(), x2.detach().numpy()) + 1e-6
-#
-#         if x_len == 4:
-#             covar_cokg_np = np.expand_dims(covar_cokg_np, axis=(0, 1))
-#         elif x_len == 3:
-#             covar_cokg_np = np.expand_dims(covar_cokg_np, axis=0)
-#
-#         covar_cokg = torch.from_numpy(covar_cokg_np)
-#         return covar_cokg
-
-# class NLCoKrigingKernel(Kernel):
-#
-#     has_lengthscale = True
-#
-#     def forward(self, x1, x2, diag=False, last_dim_is_batch=False, **params):
-#         base_kernel = GPy.kern.RBF
-#         kernels = make_non_linear_kernels(base_kernel, 2, X_train.shape[1] - 1)
-#         nonlin_mf_model = NonLinearMultiFidelityModel(X_train, Y_train, n_fidelities=2, kernels=kernels,
-#                                                       verbose=True, optimization_restarts=5)
-#         covar_cokg = None
-#         return covar_cokg

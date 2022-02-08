@@ -1,0 +1,1 @@
+{'problem': ['AugmentedAlpineN.2'], 'model_type': ['stmf'], 'lf': [0.75], 'n_reg_init': [5], 'n_reg_lf_init': [10], 'scramble': False, 'noise_fix': False, 'budget': 10, 'noise_type': ['bn'], 'dim': 1, 'cost_ratio': 10}
