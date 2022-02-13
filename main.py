@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
 from scipy.stats import norm
 
 from gpytorch.constraints.constraints import Interval
@@ -173,55 +174,55 @@ def reg_main(
                         else:
                             acq_ucb_norm = acq_ucb
 
-                        # if vis:
-                        #     if _ == 0:
-                        #         fig, axs = plt.subplots(nrows=3, ncols=1, sharex='all')
-                        #
-                        #     axs[0].plot(test_x_list, test_y_list_high, 'k--', alpha=.25)
-                        #     axs[0].fill_between(test_x_list.flatten(),
-                        #                         (test_y_list_high - 2 * np.sqrt(
-                        #                             np.abs(test_y_var_list_high))).flatten(),
-                        #                         (test_y_list_high + 2 * np.sqrt(
-                        #                             np.abs(test_y_var_list_high))).flatten(),
-                        #                         color='k', alpha=.05)
-                        #
-                        #     axs[0].plot(test_x_list, exact_y, 'k', linewidth=.5)
-                        #     axs[0].scatter(
-                        #         test_x_list[np.argmin(exact_y)], np.amin(exact_y), marker='o', c='r',
-                        #         zorder=np.iinfo(np.int32).max
-                        #     )
-                        #     axs[0].set_title('Objective')
-                        #
-                        #     c = (np.amax(exact_y) - np.amin(exact_y)) / 5
-                        #     axs[0].set_ylim([np.amin(exact_y) - c, np.amax(exact_y) + c])
-                        #
-                        #     axs[1].scatter(
-                        #         test_x_list, acq_ei_norm, marker='s', facecolors='none', edgecolors='k',
-                        #         s=10, alpha=.2
-                        #     )
-                        #
-                        #     axs[1].set_title('EI')
-                        #
-                        #     axs[1].scatter(
-                        #         test_x_list[np.argmax(acq_ei_norm)], np.amax(acq_ei_norm), marker='s',
-                        #         facecolors='none', edgecolors='r',
-                        #         s=30, zorder=np.iinfo(np.int32).max
-                        #     )
-                        #
-                        #     axs[2].scatter(
-                        #         test_x_list, acq_ucb_norm, marker='d', facecolors='none', edgecolors='k',
-                        #         s=10, alpha=.2
-                        #     )
-                        #
-                        #     axs[2].scatter(
-                        #         test_x_list[np.argmax(acq_ucb_norm)], np.amax(acq_ucb_norm), marker='d',
-                        #         facecolors='none', edgecolors='r',
-                        #         s=30, zorder=np.iinfo(np.int32).max
-                        #     )
-                        #
-                        #     axs[2].set_title('UCB')
-                        #
-                        #     plt.tight_layout()
+                        if vis:
+                            if _ == 0:
+                                fig, axs = plt.subplots(nrows=3, ncols=1, sharex='all')
+
+                            axs[0].plot(test_x_list, test_y_list_high, 'k--', alpha=.25)
+                            axs[0].fill_between(test_x_list.flatten(),
+                                                (test_y_list_high - 2 * np.sqrt(
+                                                    np.abs(test_y_var_list_high))).flatten(),
+                                                (test_y_list_high + 2 * np.sqrt(
+                                                    np.abs(test_y_var_list_high))).flatten(),
+                                                color='k', alpha=.05)
+
+                            axs[0].plot(test_x_list, exact_y, 'k', linewidth=.5)
+                            axs[0].scatter(
+                                test_x_list[np.argmin(exact_y)], np.amin(exact_y), marker='o', c='r',
+                                zorder=np.iinfo(np.int32).max
+                            )
+                            axs[0].set_title('Objective')
+
+                            c = (np.amax(exact_y) - np.amin(exact_y)) / 5
+                            axs[0].set_ylim([np.amin(exact_y) - c, np.amax(exact_y) + c])
+
+                            axs[1].scatter(
+                                test_x_list, acq_ei_norm, marker='s', facecolors='none', edgecolors='k',
+                                s=10, alpha=.2
+                            )
+
+                            axs[1].set_title('EI')
+
+                            axs[1].scatter(
+                                test_x_list[np.argmax(acq_ei_norm)], np.amax(acq_ei_norm), marker='s',
+                                facecolors='none', edgecolors='r',
+                                s=30, zorder=np.iinfo(np.int32).max
+                            )
+
+                            axs[2].scatter(
+                                test_x_list, acq_ucb_norm, marker='d', facecolors='none', edgecolors='k',
+                                s=10, alpha=.2
+                            )
+
+                            axs[2].scatter(
+                                test_x_list[np.argmax(acq_ucb_norm)], np.amax(acq_ucb_norm), marker='d',
+                                facecolors='none', edgecolors='r',
+                                s=30, zorder=np.iinfo(np.int32).max
+                            )
+
+                            axs[2].set_title('UCB')
+
+                            plt.tight_layout()
 
                         x_next_ei = test_x_list[np.argmax(acq_ei_norm)]
                         y_next_ei = problem_el.objective_function(torch.tensor([x_next_ei[0], 1])).cpu().detach().numpy()
@@ -264,6 +265,7 @@ def reg_main(
                     }
 
                 lf_data[lf_el] = n_reg_data
+                # print(n_reg_data)
             problem_data[problem_el.objective_function.name] = lf_data
         model_type_data[model_type_el] = problem_data
 
