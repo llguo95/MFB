@@ -41,7 +41,7 @@ vis = 0
 
 def reg_main(
         problem=None, model_type=None, lf=None, n_reg=None, n_reg_lf=None, scramble=False, random=False,
-        n_inf=500, noise_fix=True, lf_jitter=1e-4,
+        n_inf=500, noise_fix=True, lf_jitter=1e-4, noise_type='b',
 ):
     if problem is None:
         problem = [
@@ -79,6 +79,7 @@ def reg_main(
         'n_reg_lf': n_reg_lf,
         'scramble': scramble,
         'noise_fix': noise_fix,
+        'noise_type': noise_type,
     }
 
     model_type_data = {}

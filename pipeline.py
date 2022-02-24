@@ -107,7 +107,8 @@ def trainer(
         lf_jitter,
 ):
     if model_type_el == 'cokg_dms':
-        kernels_RL = [GPy.kern.RBF(dim - 1) + GPy.kern.White(dim - 1), GPy.kern.RBF(dim - 1)]
+        base_k = GPy.kern.RBF
+        kernels_RL = [base_k(dim - 1) + GPy.kern.White(dim - 1), base_k(dim - 1)]
         model = GPy.models.multiGPRegression(
             train_x,
             train_obj,
@@ -143,7 +144,7 @@ def trainer(
         mll, model = problem_el.initialize_model(train_x, train_obj,
                                                  model_type=model_type_el, noise_fix=noise_fix)
         if noise_fix:
-            cons = gpytorch.constraints.constraints.Interval(1e-4, 1e-4 + 1e-10)
+            cons = gpytorch.constraints.constraints.Interval(1e-4, 1e-4 + 1e-8)
             model.likelihood.noise_covar.register_constraint("raw_noise", cons)
         fit_gpytorch_model(mll)
     return model

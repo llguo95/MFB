@@ -43,22 +43,24 @@ class CoKrigingKernel(Kernel):
     def __init__(
             self,
             noise_fix=False,
+            base_kernel=GPy.kern.RBF
     ):
         super(CoKrigingKernel, self).__init__()
         self.noise_fix = noise_fix
+        self.base_kernel = base_kernel
 
     def forward(self, x1, x2, diag=False, last_dim_is_batch=False, **params):
         if self.noise_fix:
             kernels = [
-                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
+                self.base_kernel(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
                 + GPy.kern.White(x1.shape[-1] - 1),
-                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
+                self.base_kernel(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
             ]
         else:
             kernels = [
-                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
+                self.base_kernel(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
                 + GPy.kern.White(x1.shape[-1] - 1),
-                GPy.kern.RBF(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
+                self.base_kernel(x1.shape[-1] - 1, lengthscale=self.lengthscale.cpu().detach().numpy())
                 + GPy.kern.White(x1.shape[-1] - 1),
             ]
         lin_mf_kernel = LinearMultiFidelityKernel(kernels)
