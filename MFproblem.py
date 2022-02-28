@@ -8,6 +8,7 @@ from torch.quasirandom import SobolEngine
 
 from botorch.models.gp_regression import SingleTaskGP
 from gpytorch.kernels.scale_kernel import ScaleKernel
+from gpytorch.kernels.rbf_kernel import RBFKernel
 from gpytorch.mlls.exact_marginal_log_likelihood import ExactMarginalLogLikelihood
 from gpytorch.kernels.linear_kernel import LinearKernel
 
@@ -52,6 +53,7 @@ class MFProblem:
         self.fidelities = fidelities if fidelities is not None else torch.tensor([0.5, 1.0], **tkwargs)
 
         bounds = torch.tensor(objective_function._bounds, **tkwargs).transpose(0, 1)
+        print(bounds)
         lf = self.fidelities[0]
         a = (1 - 1 / cost_ratio) / (1 - lf)
         cost_model = AffineFidelityCostModel(fidelity_weights={
@@ -142,6 +144,7 @@ class MFProblem:
                 task_feature=-1,
                 input_transform=Normalize(d=self.objective_function.dim, bounds=bds),
                 outcome_transform=Standardize(m=1),
+                covar_module=ScaleKernel(RBFKernel()),
             )
 
         elif model_type == 'sogpr':

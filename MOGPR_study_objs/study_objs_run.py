@@ -37,7 +37,7 @@ problem = [
     for f in fs
 ]
 
-model_type = ['cokg', 'cokg_dms', 'mtask']
+model_type = ['mtask']
 lf = [.1, .5, .9]
 n_reg = [5]
 n_reg_lf = [15]
@@ -67,7 +67,7 @@ print(stop - start)
 
 metadata['dim'] = dim
 
-folder_path = 'data/'
+folder_path = 'data2/'
 file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
 
 open_file = open(folder_path + file_name + '.pkl', 'wb')

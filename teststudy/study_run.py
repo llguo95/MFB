@@ -5,7 +5,7 @@ import torch
 from MFproblem import MFProblem
 from main import bo_main
 from pybenchfunction import function
-from objective_formatter import botorch_TestFunction, AugmentedTestFunction
+from objective_formatter import botorch_TestFunction, AugmentedTestFunction, ComsolTestFunction
 
 tkwargs = {
     "dtype": torch.double,
@@ -14,32 +14,39 @@ tkwargs = {
 }
 
 # fs = [function.AlpineN2, function.Ridge, function.Schwefel, function.Ackley]
-fs = [function.AlpineN2]
+fs = [function.StyblinskiTang]
 
 dim = 1
-LF = .75
+LF = .8
 cost_ratio = 10
 
+# problem = [
+#     MFProblem(
+#         objective_function=AugmentedTestFunction(
+#             botorch_TestFunction(
+#                 f(d=dim), negate=True, # Minimization
+#             ), noise_type='bn',
+#         ).to(**tkwargs),
+#         fidelities=torch.tensor([LF, 1], **tkwargs),
+#         cost_ratio=cost_ratio
+#     )
+#     for f in fs
+# ]
 problem = [
     MFProblem(
-        objective_function=AugmentedTestFunction(
-            botorch_TestFunction(
-                f(d=dim), negate=True, # Minimization
-            ), noise_type='bn',
-        ).to(**tkwargs),
+        objective_function=ComsolTestFunction(),
         fidelities=torch.tensor([LF, 1], **tkwargs),
         cost_ratio=cost_ratio
     )
-    for f in fs
 ]
 
 model_type = ['stmf']
 lf = [LF]
-n_reg = [5]
-n_reg_lf = [10]
-scramble = False
+n_reg = [2]
+n_reg_lf = [2]
+scramble = True
 noise_fix = False
-budget = 10
+budget = 15
 
 data_agg = []
 
@@ -68,20 +75,20 @@ while _ < 1:
 metadata['dim'] = dim
 metadata['cost_ratio'] = cost_ratio
 
-# print(data_agg)
+print(data_agg)
 
-folder_path = 'data/'
-file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
-
-open_file = open(folder_path + file_name + '.pkl', 'wb')
-pickle.dump(data_agg, open_file)
-open_file.close()
-
-open_file = open(folder_path + file_name + '_metadata.pkl', 'wb')
-pickle.dump(metadata, open_file)
-open_file.close()
-
-with open(folder_path + file_name + '_metadata.txt', 'w') as data:
-    data.write(str(metadata))
+# folder_path = 'data/'
+# file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
+#
+# open_file = open(folder_path + file_name + '.pkl', 'wb')
+# pickle.dump(data_agg, open_file)
+# open_file.close()
+#
+# open_file = open(folder_path + file_name + '_metadata.pkl', 'wb')
+# pickle.dump(metadata, open_file)
+# open_file.close()
+#
+# with open(folder_path + file_name + '_metadata.txt', 'w') as data:
+#     data.write(str(metadata))
 #
 # plt.show()

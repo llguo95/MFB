@@ -3,32 +3,38 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pybenchfunction
 
 folder_path = 'data/'
 
 file_names = [
     # dim 1
-    # '20220211165001', # mf, 30LF b
     # '20220218110629', # mf, 5LF b
-    # '20220218144547', # mf, 30LF b, matern test
     # '20220218172924', # mf, 5LF bn
-    # '20220218180630', # mf, 30LF bn
-    # '20220222132448', # mf, 30LF bn, matern test
+    # '20220222193253', # mf, 15LF b
+    # '20220225131321', # mf, 15LF b, RBF test (mtask)
     # '20220222174825', # mf, 15LF bn
-    '20220222193253', # mf, 15LF b
+    # '20220211165001', # mf, 30LF b
+    # '20220218144547', # mf, 30LF b, matern test (cokg)
+    # '20220218180630', # mf, 30LF bn
+    # '20220222132448', # mf, 30LF bn, matern test (cokg)
 
     # dim 2
-    # '20220222143107', # mf, 75LF bn
+    '20220222143107', # mf, 75LF bn
     # '20220222185639', # mf, 75LF b
 
     # dim 1
-    '20220211170131', # sogpr, 6HF
+    # '20220211170131', # sogpr, 6HF
     # '20220221174116', # sogpr, 7HF
     # '20220221174326', # sogpr, 8HF
 
     # dim 2
-    # '20220222144503' # sogpr, 30HF
+    '20220222144503' # sogpr, 30HF
 ]
+
+f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
+excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
+fs = [f for f in f_class_list if f.name not in excluded_fs]
 
 model_types = ['cokg', 'cokg_dms', 'mtask']
 lfs = [0.1, 0.5, 0.9]
@@ -58,7 +64,7 @@ for f_i, file_name in enumerate(file_names):
         # print(model_type)
         mrm_problem = {}
         for problem_no, problem in enumerate(metadata['problem']):
-            if problem == 'AugmentedRidge': continue
+            if problem == 'AugmentedRidge' and metadata['dim'] == 1: continue
             problem_slice = model_type_slice[problem]
 
             # print(problem)
@@ -94,20 +100,27 @@ for mf_i, mf_scenario in enumerate(mrmv_mf):
         for lf_i, lf in enumerate(metadata_mf['lf']):
             prob_stat_vec = []
             for problem in metadata_mf['problem']:
-                if problem == 'AugmentedRidge': continue
+                if problem == 'AugmentedRidge' and metadata['dim'] == 1: continue
                 # mrmv_mf[model_type][problem][lf][0] = mrmv_sf['sogpr'][problem][0.1][0] / mrmv_mf[model_type][problem][lf][0]
                 # print(problem, mrmv_sf['sogpr'][problem][0.1][0], mrmv_mf[model_type][problem][lf][0])
                 lri = np.log10(mrmv_sf['sogpr'][problem][0.5][0] / mf_scenario[model_type][problem][lf][0])
                 # lri = np.log10(mrmv_sf['sogpr'][problem][0.1][0] / mf_scenario[model_type][problem][lf][0])
                 # lri = mrmv_sf['sogpr'][problem][0.1][0] / mrmv_mf[model_type][problem][lf][0]
                 prob_stat_vec.append(lri)
+            prop, nonprop = [], []
+            for stat_i, stat in enumerate(prob_stat_vec):
+                # print(fs[stat_i].name, fs[stat_i].convex)
+                (nonprop, prop)[fs[stat_i].multimodal is False].append(stat)
 
             df_data[lf] = prob_stat_vec
             print()
             # print(model_type, lf, 10 ** np.median(prob_stat_vec), [10 ** np.quantile(prob_stat_vec, q=.25), 10 ** np.quantile(prob_stat_vec, q=.75)])
             print(model_type, lf, np.median(prob_stat_vec), [np.quantile(prob_stat_vec, q=.25), np.quantile(prob_stat_vec, q=.75)])
+            print(model_type, lf, 'prop', np.median(prop), [np.quantile(prop, q=.25), np.quantile(prop, q=.75)])
+            print(model_type, lf, 'nonprop', np.median(nonprop), [np.quantile(nonprop, q=.25), np.quantile(nonprop, q=.75)])
             ax = axs[lf_i]
-            ax.hist(prob_stat_vec, bins=20, ec='k')
+            # ax.hist(prob_stat_vec, bins=20, ec='k')
+            ax.hist((prop, nonprop), bins=20, ec='k', color=['g', 'r'], stacked=True)
             ax.set_title('LF = ' + str(lf))
             ax.axvline(x=0, color='k', linestyle='--', linewidth=3)
             if lf_i == 2:

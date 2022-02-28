@@ -9,6 +9,11 @@ import gpytorch
 from emukit.multi_fidelity.models import NonLinearMultiFidelityModel
 from emukit.multi_fidelity.models.non_linear_multi_fidelity_model import make_non_linear_kernels
 
+from gpytorch.likelihoods.gaussian_likelihood import (
+    FixedNoiseGaussianLikelihood,
+    GaussianLikelihood,
+)
+
 tkwargs = {
     "dtype": torch.double,
     # "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
@@ -144,8 +149,9 @@ def trainer(
         mll, model = problem_el.initialize_model(train_x, train_obj,
                                                  model_type=model_type_el, noise_fix=noise_fix)
         if noise_fix:
-            cons = gpytorch.constraints.constraints.Interval(1e-4, 1e-4 + 1e-8)
-            model.likelihood.noise_covar.register_constraint("raw_noise", cons)
+            model.likelihood = GaussianLikelihood(noise_constraint=gpytorch.constraints.Interval(1e-4, 2e-4))
+            # cons = gpytorch.constraints.constraints.Interval(1e-4, 2e-4)
+            # model.likelihood.noise_covar.register_constraint("raw_noise", cons)
         fit_gpytorch_model(mll)
     return model
 

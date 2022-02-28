@@ -2,6 +2,7 @@ import torch
 from torch import Tensor
 import numpy as np
 from botorch.test_functions import SyntheticTestFunction
+from MFBO import Comsol_Sim_low, Comsol_Sim_high
 
 tkwargs = {
     "dtype": torch.double,
@@ -67,6 +68,8 @@ class AugmentedTestFunction(SyntheticTestFunction):
         res_high = self.fun(X[:, :-1]).flatten().to(**tkwargs)
 
         fid = X[:, -1].to(**tkwargs)
+        # print(fid)
+        # print(fid.shape)
         white_noise = torch.normal(0, 1, size=(len(res_high),))
 
         stdev = 1
@@ -94,5 +97,35 @@ class AugmentedTestFunction(SyntheticTestFunction):
         c = 1
 
         res = fid ** c * res_high + (1 - fid ** c) * res_low
+        # print(res)
+
+        return res
+
+class ComsolTestFunction(SyntheticTestFunction):
+    def __init__(self):
+        self.name = 'comsol'
+        self._bounds = [(10, 15)]
+        self._optimizers = [(0, 0)]
+        self.dim = 2
+        self.noise_type = 'NA'
+        self.negate = True
+        super().__init__()
+
+    def evaluate_true(self, X: Tensor) -> Tensor:
+        # torch.random.manual_seed(123)
+
+        fid = X[:, -1].to(**tkwargs)
+
+        # res = fid ** c * res_high + (1 - fid ** c) * res_low
+        res = torch.zeros_like(fid)
+
+        for i, x_i in enumerate(X):
+            if fid[i] == 1:
+                res[i] = torch.tensor(Comsol_Sim_high(x_i[:-1].numpy()))
+            else:
+                res[i] = torch.tensor(Comsol_Sim_low(x_i[:-1].numpy()))
+
+        if self.negate:
+            res = -res
 
         return res

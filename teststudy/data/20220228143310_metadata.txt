@@ -1,0 +1,1 @@
+{'problem': ['AugmentedStyblinskiTang'], 'model_type': ['cokg'], 'lf': [0.8], 'n_reg_init': [40], 'n_reg_lf_init': [80], 'scramble': False, 'noise_fix': False, 'budget': 50, 'noise_type': ['bn'], 'dim': 3, 'cost_ratio': 10}

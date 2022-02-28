@@ -6,7 +6,7 @@ import numpy as np
 folder_path = 'data/'
 
 file_names = [
-    '20220208223448'
+    '20220224134858'
 ]
 
 for f_i, file_name in enumerate(file_names):
@@ -35,6 +35,8 @@ for f_i, file_name in enumerate(file_names):
                     lf_slice = problem_slice[lf]
 
                     for n_reg_init, n_reg_lf_init in zip(metadata['n_reg_init'], metadata['n_reg_lf_init']):
+                        y_hist = np.minimum.accumulate(lf_slice[(n_reg_init, n_reg_lf_init)]['y_hist_norm'][:, 0])
                         n_reg_slice = lf_slice[(n_reg_init, n_reg_lf_init)]
 
                         print(n_reg_slice)
+                        # print(y_hist)

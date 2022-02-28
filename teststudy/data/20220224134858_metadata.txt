@@ -1,0 +1,1 @@
+{'problem': ['AugmentedAdjiman'], 'model_type': ['sogpr'], 'lf': [0.8], 'n_reg_init': [10], 'n_reg_lf_init': [20], 'scramble': False, 'noise_fix': False, 'budget': 20, 'noise_type': ['bn'], 'dim': 2, 'cost_ratio': 10}

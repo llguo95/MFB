@@ -325,7 +325,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
         for problem_el in problem:
             bds = problem_el.bounds
             dim = problem_el.objective_function.dim
-            xmin, ymin = problem_el.objective_function.opt(d=dim - 1)
+            # xmin, ymin = problem_el.objective_function.opt(d=dim - 1)
 
             lf_data = {}
             for lf_el in lf:
@@ -422,10 +422,10 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                     # y_err_norm = np.linalg.norm(y_best - ymin) / (np.amax(-exact_y) - ymin)
                     #
                     # x_hist_norm = train_x[:, :-1]
-                    y_hist_norm = np.linalg.norm(-train_obj - ymin, axis=1) / (np.amax(-exact_y) - ymin)
+                    # y_hist_norm = np.linalg.norm(-train_obj - ymin, axis=1) / (np.amax(-exact_y) - ymin)
 
                     opt_data['x_hist'] = train_x.detach().numpy()
-                    opt_data['y_hist_norm'] = np.hstack((y_hist_norm[:, None], train_x[:, -1].detach().numpy()[:, None]))
+                    # opt_data['y_hist_norm'] = np.hstack((y_hist_norm[:, None], train_x[:, -1].detach().numpy()[:, None]))
 
                     n_reg_init_data[(n_reg_init_el, n_reg_lf_init_el)] = opt_data
 
