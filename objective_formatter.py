@@ -104,9 +104,12 @@ class AugmentedTestFunction(SyntheticTestFunction):
 class ComsolTestFunction(SyntheticTestFunction):
     def __init__(self):
         self.name = 'comsol'
-        self._bounds = [(10, 15)]
+        # self._bounds = [(0, 6)]
+        # self._optimizers = [(1.5 * np.pi, -1)]
+        # self.dim = 2
+        self._bounds = [(-2, 2), (-2, 2)]
         self._optimizers = [(0, 0)]
-        self.dim = 2
+        self.dim = 3
         self.noise_type = 'NA'
         self.negate = True
         super().__init__()

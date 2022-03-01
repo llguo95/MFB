@@ -425,6 +425,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                     # y_hist_norm = np.linalg.norm(-train_obj - ymin, axis=1) / (np.amax(-exact_y) - ymin)
 
                     opt_data['x_hist'] = train_x.detach().numpy()
+                    opt_data['y_hist'] = train_obj
                     # opt_data['y_hist_norm'] = np.hstack((y_hist_norm[:, None], train_x[:, -1].detach().numpy()[:, None]))
 
                     n_reg_init_data[(n_reg_init_el, n_reg_lf_init_el)] = opt_data

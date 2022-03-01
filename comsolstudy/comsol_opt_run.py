@@ -5,7 +5,9 @@ import torch
 from MFproblem import MFProblem
 from main import bo_main
 from pybenchfunction import function
-from objective_formatter import botorch_TestFunction, AugmentedTestFunction
+from objective_formatter import botorch_TestFunction, AugmentedTestFunction, ComsolTestFunction
+
+import matplotlib.pyplot as plt
 
 tkwargs = {
     "dtype": torch.double,
@@ -14,32 +16,27 @@ tkwargs = {
 }
 
 # fs = [function.AlpineN2, function.Ridge, function.Schwefel, function.Ackley]
-fs = [function.StyblinskiTang]
+# fs = [function.StyblinskiTang]
 
-dim = 1
+dim = 2
 LF = .8
 cost_ratio = 10
 
 problem = [
     MFProblem(
-        objective_function=AugmentedTestFunction(
-            botorch_TestFunction(
-                f(d=dim), negate=True, # Minimization
-            ), noise_type='bn',
-        ).to(**tkwargs),
+        objective_function=ComsolTestFunction(),
         fidelities=torch.tensor([LF, 1], **tkwargs),
         cost_ratio=cost_ratio
     )
-    for f in fs
 ]
 
 model_type = ['stmf']
 lf = [LF]
-n_reg = [2]
-n_reg_lf = [2]
+n_reg = [4]
+n_reg_lf = [4]
 scramble = True
 noise_fix = False
-budget = 15
+budget = 30
 
 data_agg = []
 
@@ -68,6 +65,11 @@ while _ < 1:
 metadata['dim'] = dim
 metadata['cost_ratio'] = cost_ratio
 
+# print(data_agg)
+
+# x_hist = data_agg[0]['stmf']['comsol'][0.8][(2, 2)]['x_hist']
+# print(x_hist)
+
 folder_path = 'data/'
 file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
 
@@ -81,5 +83,5 @@ open_file.close()
 
 with open(folder_path + file_name + '_metadata.txt', 'w') as data:
     data.write(str(metadata))
-
+#
 # plt.show()

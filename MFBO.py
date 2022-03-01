@@ -99,11 +99,14 @@ def Comsol_Sim():
 #     return float(open(b_Objective_1_txt_file, "r").read().strip())
 
 def Comsol_Sim_high(x):
-    return x ** 2
+    return x[0] ** 2 + x[1] ** 2
+    # return np.sin(x)
 
 
 def Comsol_Sim_low(x):
-    return .5 * x ** 2 + x
+    # return x[0] ** 2 + x[1] ** 2
+    return (x[0] ** 2 + x[1] ** 2) / 2 + x[0]
+    # return np.sin(x + 1) + .1 * x
 
 
 class Cost(Acquisition):

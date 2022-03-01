@@ -53,7 +53,7 @@ class MFProblem:
         self.fidelities = fidelities if fidelities is not None else torch.tensor([0.5, 1.0], **tkwargs)
 
         bounds = torch.tensor(objective_function._bounds, **tkwargs).transpose(0, 1)
-        print(bounds)
+        # print(bounds)
         lf = self.fidelities[0]
         a = (1 - 1 / cost_ratio) / (1 - lf)
         cost_model = AffineFidelityCostModel(fidelity_weights={
