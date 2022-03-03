@@ -11,7 +11,7 @@ file_names = [
     # dim 1
     # '20220218110629', # mf, 5LF b
     # '20220218172924', # mf, 5LF bn
-    # '20220222193253', # mf, 15LF b
+    '20220222193253', # mf, 15LF b
     # '20220225131321', # mf, 15LF b, RBF test (mtask)
     # '20220222174825', # mf, 15LF bn
     # '20220211165001', # mf, 30LF b
@@ -20,16 +20,16 @@ file_names = [
     # '20220222132448', # mf, 30LF bn, matern test (cokg)
 
     # dim 2
-    '20220222143107', # mf, 75LF bn
+    # '20220222143107', # mf, 75LF bn
     # '20220222185639', # mf, 75LF b
 
     # dim 1
-    # '20220211170131', # sogpr, 6HF
+    '20220211170131', # sogpr, 6HF
     # '20220221174116', # sogpr, 7HF
     # '20220221174326', # sogpr, 8HF
 
     # dim 2
-    '20220222144503' # sogpr, 30HF
+    # '20220222144503' # sogpr, 30HF
 ]
 
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)

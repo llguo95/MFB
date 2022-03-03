@@ -35,14 +35,21 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-]
+][:1]
 
-model_type = ['mtask']
-lf = [.1, .5, .9]
+model_type = ['sogpr']
+lf = [.5]
 n_reg = [5]
 n_reg_lf = [15]
 scramble = True
 noise_fix = True
+
+# model_type = ['mtask']
+# lf = [.1, .5, .9]
+# n_reg = [5]
+# n_reg_lf = [15]
+# scramble = True
+# noise_fix = True
 
 # model_type = ['mtask']
 # lf = [.5]
@@ -65,20 +72,20 @@ data, metadata = reg_main(
 stop = time.time()
 print(stop - start)
 
-metadata['dim'] = dim
-
-folder_path = 'data2/'
-file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
-
-open_file = open(folder_path + file_name + '.pkl', 'wb')
-pickle.dump(data, open_file)
-open_file.close()
-
-open_file = open(folder_path + file_name + '_metadata.pkl', 'wb')
-pickle.dump(metadata, open_file)
-open_file.close()
-
-with open(folder_path + file_name + '_metadata.txt', 'w') as data:
-    data.write(str(metadata))
+# metadata['dim'] = dim
+#
+# folder_path = 'data2/'
+# file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
+#
+# open_file = open(folder_path + file_name + '.pkl', 'wb')
+# pickle.dump(data, open_file)
+# open_file.close()
+#
+# open_file = open(folder_path + file_name + '_metadata.pkl', 'wb')
+# pickle.dump(metadata, open_file)
+# open_file.close()
+#
+# with open(folder_path + file_name + '_metadata.txt', 'w') as data:
+#     data.write(str(metadata))
 
 plt.show()

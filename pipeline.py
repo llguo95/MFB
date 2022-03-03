@@ -77,7 +77,6 @@ def pretrainer(
     test_x_list_low = np.concatenate((test_x_list, lf_vec), axis=1)
     test_x_list_high = np.concatenate((test_x_list, hf_vec), axis=1)
 
-    exact_y_low = problem_el.objective_function(torch.Tensor(test_x_list_low)).cpu().detach().numpy()
     exact_y = problem_el.objective_function(torch.Tensor(test_x_list_high)).cpu().detach().numpy()
 
     ### Scaling ###
@@ -90,6 +89,7 @@ def pretrainer(
         scaler_y_low = StandardScaler()
         scaler_y_high = StandardScaler()
 
+        exact_y_low = problem_el.objective_function(torch.Tensor(test_x_list_low)).cpu().detach().numpy()
         scaler_y_low.fit(exact_y_low[:, None])
         scaler_y_high.fit(exact_y[:, None])
         train_y_low_scaled = scaler_y_low.transform(train_y_low)

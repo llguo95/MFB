@@ -16,6 +16,7 @@ from botorch.acquisition import PosteriorMean
 from botorch.acquisition.fixed_feature import FixedFeatureAcquisitionFunction
 from botorch.acquisition.max_value_entropy_search import qMaxValueEntropy, qMultiFidelityMaxValueEntropy
 from botorch.acquisition.cost_aware import InverseCostWeightedUtility
+from botorch.acquisition.analytic import ExpectedImprovement, UpperConfidenceBound
 from botorch.models.cost import AffineFidelityCostModel
 from botorch.models.transforms.outcome import Standardize
 from botorch.models.transforms.input import Normalize
@@ -234,10 +235,14 @@ class MFProblem:
                 cost_aware_utility=self.cost_aware_utility,
             )
         else:
-            acq = qMaxValueEntropy(
+            # acq = qMaxValueEntropy(
+            #     model=model,
+            #     candidate_set=candidate_set,
+            #     num_fantasies=128 if not SMOKE_TEST else 2,
+            # )
+            acq = UpperConfidenceBound(
                 model=model,
-                candidate_set=candidate_set,
-                num_fantasies=128 if not SMOKE_TEST else 2,
+                beta=2,
             )
 
         return acq
