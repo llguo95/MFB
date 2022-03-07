@@ -107,11 +107,16 @@ class ComsolTestFunction(SyntheticTestFunction):
         # self._bounds = [(0, 6)]
         # self._optimizers = [(1.5 * np.pi, -1)]
         # self.dim = 2
-        self._bounds = [(-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2)]
-        self._optimizers = [(0, 0, 0, 0, 0, 0, 0, 0, 0)]
-        self.dim = 10
+        # self._bounds = [(-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2), (-2, 2)]
+        # self._optimizers = [(0, 0, 0, 0, 0, 0, 0, 0, 0)]
+        # self._bounds = [(-2, 2), (-2, 2),]
+        # self._optimizers = [(0, 0,)]
+        # self.dim = 3
+        self._bounds = [(0, 1), (0, 1), ]
+        self._optimizers = [(0, 0)]
+        self.dim = 3
         self.noise_type = 'NA'
-        self.negate = True
+        self.negate = False
         super().__init__()
 
     def evaluate_true(self, X: Tensor) -> Tensor:

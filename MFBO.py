@@ -98,17 +98,30 @@ def Comsol_Sim():
 #     os.chdir(folder_path)
 #     return float(open(b_Objective_1_txt_file, "r").read().strip())
 
+# def Comsol_Sim_high(x):
+#     print("HIGH")
+#     return x[0] ** 2 + x[1] ** 2
+#     # return np.sin(x)
+#
+#
+# def Comsol_Sim_low(x):
+#     # return x[0] ** 2 + x[1] ** 2
+#     print("LOW")
+#     return (x[0] ** 2 + x[1] ** 2) / 2 + x[0]
+#     # return np.sin(x + 1) + .1 * x
+
 def Comsol_Sim_high(x):
     print("HIGH")
-    return x[0] ** 2 + x[1] ** 2
-    # return np.sin(x)
+    x0=x[0]*10-5
+    x1=x[1]*10-5
+    return ((x0 ** 4 - 16 * x0 ** 2 + 5 * x0 )/2 + (x1 ** 4 - 16 * x1 ** 2 + 5 * x1 )/2)
 
 
 def Comsol_Sim_low(x):
-    # return x[0] ** 2 + x[1] ** 2
     print("LOW")
-    return (x[0] ** 2 + x[1] ** 2) / 2 + x[0]
-    # return np.sin(x + 1) + .1 * x
+    x0=x[0]*10-5
+    x1=x[1]*10-5
+    return ((x0 ** 4 - 16 * x0 ** 2 + 5 * x0 )/2 + (x1 ** 4 - 16 * x1 ** 2 + 5 * x1 )/2)*0.1+x0-x1
 
 
 class Cost(Acquisition):

@@ -16,9 +16,19 @@ file_names = [
 
     # 2D
     # '20220301165310',  # stmf # IDENTICAL FUNCTIONS
-    '20220301164441',  # stmf
-    '20220301164506',  # sogpr
-    '20220301164642',  # cokg
+    # '20220301164441',  # stmf
+    # '20220301164506',  # sogpr
+    # '20220301164642',  # cokg
+
+    # 2D Styblinsky-Tang
+    '20220303171503', # sogpr
+    '20220303171823', # stmf
+    '20220303171947', # cokg
+
+    # # 2D Styblinsky-Tang
+    # '20220303172116', # sogpr
+    # '20220303172321', # stmf
+    # '20220303172447', # cokg
 ]
 
 for f_i, file_name in enumerate(file_names):

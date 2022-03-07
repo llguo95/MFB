@@ -18,7 +18,7 @@ tkwargs = {
 # fs = [function.AlpineN2, function.Ridge, function.Schwefel, function.Ackley]
 # fs = [function.StyblinskiTang]
 
-dim = 9
+dim = 2
 LF = .8
 cost_ratio = 10
 
@@ -30,11 +30,11 @@ problem = [
     )
 ]
 
-model_type = ['sogpr']
+model_type = ['cokg']
 lf = [LF]
 n_reg = [10]
 n_reg_lf = [20]
-scramble = True
+scramble = False
 noise_fix = False
 budget = 30
 
@@ -72,18 +72,18 @@ metadata['cost_ratio'] = cost_ratio
 # x_hist = data_agg[0]['stmf']['comsol'][0.8][(2, 2)]['x_hist']
 # print(x_hist)
 
-# folder_path = 'data/'
-# file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
-#
-# open_file = open(folder_path + file_name + '.pkl', 'wb')
-# pickle.dump(data_agg, open_file)
-# open_file.close()
-#
-# open_file = open(folder_path + file_name + '_metadata.pkl', 'wb')
-# pickle.dump(metadata, open_file)
-# open_file.close()
-#
-# with open(folder_path + file_name + '_metadata.txt', 'w') as data:
-#     data.write(str(metadata))
+folder_path = 'data/'
+file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
+
+open_file = open(folder_path + file_name + '.pkl', 'wb')
+pickle.dump(data_agg, open_file)
+open_file.close()
+
+open_file = open(folder_path + file_name + '_metadata.pkl', 'wb')
+pickle.dump(metadata, open_file)
+open_file.close()
+
+with open(folder_path + file_name + '_metadata.txt', 'w') as data:
+    data.write(str(metadata))
 #
 # plt.show()

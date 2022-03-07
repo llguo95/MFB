@@ -1,0 +1,1 @@
+{'problem': ['comsol'], 'model_type': ['sogpr'], 'lf': [0.8], 'n_reg_init': [10], 'n_reg_lf_init': [20], 'scramble': True, 'noise_fix': False, 'budget': 30, 'noise_type': ['NA'], 'dim': 2, 'cost_ratio': 10}
