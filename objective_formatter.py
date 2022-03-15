@@ -25,8 +25,9 @@ class botorch_TestFunction(SyntheticTestFunction):
         self.dim = fun.d
         self._bounds = fun.input_domain
         self._optimizers = [tuple(0.0 for _ in range(self.dim))]
-        self.negate = negate
-        super().__init__(negate=negate)
+        # self.negate = negate
+        # super().__init__(negate=negate)
+        super().__init__()
 
     def evaluate_true(self, X: Tensor) -> Tensor:
         res = torch.Tensor(
@@ -35,13 +36,13 @@ class botorch_TestFunction(SyntheticTestFunction):
             )
         )
 
-        if self.negate:
-            res = -res
+        # if self.negate:
+        #     res = -res
 
         return res
 
 class AugmentedTestFunction(SyntheticTestFunction):
-    def __init__(self, fun, abs=False, noise_type='bn'):
+    def __init__(self, fun, negate=False, noise_type='bn'):
         self.name = 'Augmented' + fun.name.replace(' ', '')
         self.continuous = fun.continuous
         self.convex = fun.convex
@@ -58,9 +59,9 @@ class AugmentedTestFunction(SyntheticTestFunction):
         self._optimizers = fun._optimizers
 
         self.noise_type = noise_type
+        self.negate = negate
 
-        # self.abs = abs
-        super().__init__()
+        super().__init__(negate=negate)
 
     def evaluate_true(self, X: Tensor) -> Tensor:
         # torch.random.manual_seed(123)
@@ -98,6 +99,9 @@ class AugmentedTestFunction(SyntheticTestFunction):
 
         res = fid ** c * res_high + (1 - fid ** c) * res_low
         # print(res)
+
+        # if self.negate:
+        #     res = -res
 
         return res
 

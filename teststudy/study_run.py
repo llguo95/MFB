@@ -2,8 +2,8 @@ import time
 import pickle
 import torch
 
-from MFproblem import MFProblem
-from main import bo_main
+from MFB.MFproblem import MFProblem
+from MFB.main import bo_main
 from pybenchfunction import function
 from objective_formatter import botorch_TestFunction, AugmentedTestFunction
 

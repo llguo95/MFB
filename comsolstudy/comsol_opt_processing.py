@@ -1,9 +1,8 @@
 import pickle
 
 import matplotlib.pyplot as plt
-import numpy as np
 
-from MFBO import Comsol_Sim_low, Comsol_Sim_high
+from MFB.MFBO import Comsol_Sim_high
 
 folder_path = 'data/'
 

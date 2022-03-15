@@ -323,6 +323,10 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
 
         problem_data = {}
         for problem_el in problem:
+            if vis:
+                plt.figure(num=problem_el.objective_function.name)
+            pm_one = 2 * (.5 - problem_el.objective_function.negate)
+
             bds = problem_el.bounds
             dim = problem_el.objective_function.dim
             # xmin, ymin = problem_el.objective_function.opt(d=dim - 1)
@@ -341,6 +345,8 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                         scramble, n_inf, bds, dim,
                     )
 
+                    train_x_init, train_y_init = train_x, train_obj
+
                     train_x_high = torch.tensor([])
                     train_obj_high = torch.tensor([])
 
@@ -348,7 +354,8 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
 
                     opt_data = {}
                     _ = 0
-                    while cumulative_cost <= budget:
+                    RAAEs, RMSTDs = [], []
+                    while cumulative_cost < budget:
                         if _ % 5 == 0: print(_)
                         mll, model = problem_el.initialize_model(train_x, train_obj, model_type=model_type_el)
                         if noise_fix:
@@ -356,9 +363,16 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                             model.likelihood.noise_covar.register_constraint("raw_noise", cons)
                         fit_gpytorch_model(mll)
 
-                        # (test_y_list_high, test_y_var_list_high) = posttrainer(
-                        #     model, model_type_el, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high,
-                        # )
+                        (test_y_list_high, test_y_var_list_high) = posttrainer(
+                            model, model_type_el, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high,
+                        )
+
+                        RAAE = np.mean(np.abs(exact_y.reshape(np.shape(test_y_list_high)) - test_y_list_high)) / np.std(
+                            exact_y)
+                        RAAEs.append(RAAE)
+
+                        RMSTD = np.mean(np.sqrt(np.abs(test_y_var_list_high))) / (max(exact_y) - min(exact_y))
+                        RMSTDs.append(RMSTD)
 
                         mfacq = problem_el.get_mfacq(model)
                         new_x, new_obj, cost = problem_el.optimize_mfacq_and_get_observation(mfacq)
@@ -381,31 +395,38 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                             train_obj_high = torch.cat([train_obj_high, new_obj])
 
                         # if vis:
-                        #     plt.figure(model_type_el)
+                        #     size = 2 * (_ + 1)
+                        #     # plt.figure(model_type_el)
                         #     if model_type_el is not 'sogpr':
                         #         if new_x[0][-1] == 1:
                         #             print('Sample at highest fidelity!')
-                        #             plt.scatter(new_x[0][0], -new_obj[0][0], #alpha=(_ + 1) / n_iter_el,
+                        #             plt.scatter(new_x[0][0], pm_one * new_obj[0][0], s=size,
                         #                         color='g')
                         #         else:
                         #             # continue
-                        #             plt.scatter(new_x[0][0], -new_obj[0][0], #alpha=(_ + 1) / n_iter_el,
+                        #             plt.scatter(new_x[0][0], pm_one * new_obj[0][0], s=size,
                         #                         color='b')
                         #     else:
-                        #         plt.scatter(new_x[0][0], -new_obj[0][0], #alpha=(_ + 1) / n_iter_el,
+                        #         plt.scatter(new_x[0][0], pm_one * new_obj[0][0], s=size,
                         #                     color='g')
-                        #     plt.plot(test_x_list, -test_y_list_high, #alpha=(_ + 1) / n_iter_el,
-                        #              color='r')
-                        #     plt.fill_between(test_x_list.flatten(),
-                        #                      (-test_y_list_high - 2 * np.sqrt(
-                        #                          np.abs(test_y_var_list_high))).flatten(),
-                        #                      (-test_y_list_high + 2 * np.sqrt(
-                        #                          np.abs(test_y_var_list_high))).flatten(),
-                        #                      color='k', alpha=.05 #* (_ + 1) / n_iter_el
-                        #                      )
-                        #     plt.plot(test_x_list, -exact_y, 'k--')
-
+                        #     if cumulative_cost + cost > budget:
+                        #         plt.plot(test_x_list, pm_one * test_y_list_high, alpha=.1,
+                        #                  color='r')
+                        #         plt.fill_between(test_x_list.flatten(),
+                        #                          (pm_one * test_y_list_high - 2 * np.sqrt(
+                        #                              np.abs(test_y_var_list_high))).flatten(),
+                        #                          (pm_one * test_y_list_high + 2 * np.sqrt(
+                        #                              np.abs(test_y_var_list_high))).flatten(),
+                        #                          color='k', alpha=.05 #* (_ + 1) / n_iter_el
+                        #                          )
+                        #         if new_x[0][-1] == 1:
+                        #             print('Sample at highest fidelity!')
+                        #             plt.scatter(new_x[0][0], pm_one * new_obj[0][0], s=size,
+                        #                         color='orange')
+                        #     plt.plot(test_x_list, pm_one * exact_y, 'k--')
                         _ += 1
+
+                    # print(train_x_init)
 
                     # if len(train_obj_high) > 0:
                     #     # print('Initial DoE EXCLUDED in calculating cumulative minimum')
@@ -425,7 +446,10 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                     # y_hist_norm = np.linalg.norm(-train_obj - ymin, axis=1) / (np.amax(-exact_y) - ymin)
 
                     opt_data['x_hist'] = train_x.detach().numpy()
-                    opt_data['y_hist'] = train_obj
+                    # print(problem_el.objective_function.negate)
+                    opt_data['y_hist'] = pm_one * train_obj
+                    opt_data['RAAE'] = torch.tensor(RAAEs).to(**tkwargs)[:, None]
+                    opt_data['RMSTD'] = torch.tensor(RMSTDs).to(**tkwargs)[:, None]
                     # opt_data['y_hist_norm'] = np.hstack((y_hist_norm[:, None], train_x[:, -1].detach().numpy()[:, None]))
 
                     n_reg_init_data[(n_reg_init_el, n_reg_lf_init_el)] = opt_data

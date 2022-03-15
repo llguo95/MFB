@@ -11,7 +11,7 @@ file_names = [
     # dim 1
     # '20220218110629', # mf, 5LF b
     # '20220218172924', # mf, 5LF bn
-    '20220222193253', # mf, 15LF b
+    # '20220222193253', # mf, 15LF b
     # '20220225131321', # mf, 15LF b, RBF test (mtask)
     # '20220222174825', # mf, 15LF bn
     # '20220211165001', # mf, 30LF b
@@ -20,21 +20,22 @@ file_names = [
     # '20220222132448', # mf, 30LF bn, matern test (cokg)
 
     # dim 2
-    # '20220222143107', # mf, 75LF bn
+    '20220222143107', # mf, 75LF bn
     # '20220222185639', # mf, 75LF b
 
     # dim 1
-    '20220211170131', # sogpr, 6HF
+    # '20220211170131', # sogpr, 6HF
     # '20220221174116', # sogpr, 7HF
     # '20220221174326', # sogpr, 8HF
 
     # dim 2
-    # '20220222144503' # sogpr, 30HF
+    '20220222144503' # sogpr, 30HF
 ]
 
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
 excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
 fs = [f for f in f_class_list if f.name not in excluded_fs]
+print([f.name for f in fs])
 
 model_types = ['cokg', 'cokg_dms', 'mtask']
 lfs = [0.1, 0.5, 0.9]
@@ -132,7 +133,7 @@ for mf_i, mf_scenario in enumerate(mrmv_mf):
 
         # df = pd.DataFrame(data=df_data, index=metadata_mf['problem'])
         # print(df)
-
+        #
         # df.to_excel('data/' + file_names[0] + '_data_' + model_type + '.xlsx')
 
 plt.show()

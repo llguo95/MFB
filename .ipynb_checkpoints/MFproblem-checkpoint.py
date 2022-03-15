@@ -94,8 +94,6 @@ class MFProblem:
             train_f = self.fidelities[torch.bernoulli(p).long()]
         else:
             soboleng = SobolEngine(dimension=self.objective_function.dim - 1, scramble=scramble)
-            if not scramble:
-                soboleng.fast_forward(123)
             train_x = soboleng.draw(n_tot).to(**tkwargs)
 
             indices = torch.zeros((n_tot, 1))

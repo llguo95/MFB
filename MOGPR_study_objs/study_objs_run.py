@@ -1,12 +1,10 @@
 import time
-import pickle
 import torch
 from matplotlib import pyplot as plt
 
 from MFproblem import MFProblem
-from main import reg_main, bo_main
+from main import reg_main
 import pybenchfunction
-from pybenchfunction import function
 from objective_formatter import botorch_TestFunction, AugmentedTestFunction
 
 tkwargs = {
@@ -35,7 +33,7 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-][:1]
+]
 
 model_type = ['sogpr']
 lf = [.5]

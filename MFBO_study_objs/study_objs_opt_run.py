@@ -2,9 +2,11 @@ import time
 import pickle
 import torch
 
-from MFB.MFproblem import MFProblem
-from MFB.main import bo_main
-from objective_formatter import ComsolTestFunction
+from MFproblem import MFProblem
+from main import bo_main
+import pybenchfunction
+# from pybenchfunction import function
+from objective_formatter import botorch_TestFunction, AugmentedTestFunction
 
 tkwargs = {
     "dtype": torch.double,
@@ -12,28 +14,38 @@ tkwargs = {
     "device": torch.device("cpu"),
 }
 
+f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
+excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
+fs = [f for f in f_class_list if f.name not in excluded_fs]
 # fs = [function.AlpineN2, function.Ridge, function.Schwefel, function.Ackley]
 # fs = [function.StyblinskiTang]
 
-dim = 2
+dim = 1
 LF = .8
-cost_ratio = 10
+cost_ratio = 5
 
 problem = [
     MFProblem(
-        objective_function=ComsolTestFunction(),
+        objective_function=AugmentedTestFunction(
+            botorch_TestFunction(
+                f(d=dim),
+            ), noise_type='b', negate=True, # Minimization
+        ).to(**tkwargs),
         fidelities=torch.tensor([LF, 1], **tkwargs),
         cost_ratio=cost_ratio
     )
+    for f in fs
 ]
 
-model_type = ['cokg']
+print([p.objective_function.name for p in problem])
+
+model_type = ['sogpr', 'cokg', 'stmf']
 lf = [LF]
-n_reg = [10]
-n_reg_lf = [20]
+n_reg = [5]
+n_reg_lf = [10]
 scramble = False
 noise_fix = False
-budget = 30
+budget = 25
 
 data_agg = []
 
@@ -64,11 +76,6 @@ while _ < 1:
 metadata['dim'] = dim
 metadata['cost_ratio'] = cost_ratio
 
-# print(data_agg)
-
-# x_hist = data_agg[0]['stmf']['comsol'][0.8][(2, 2)]['x_hist']
-# print(x_hist)
-
 folder_path = 'data/'
 file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
 
@@ -82,5 +89,5 @@ open_file.close()
 
 with open(folder_path + file_name + '_metadata.txt', 'w') as data:
     data.write(str(metadata))
-#
+
 # plt.show()
