@@ -10,7 +10,7 @@ folder_path = 'data/'
 
 file_names = [
     # '20220309172200',
-    '20220309174208',
+    # '20220309174208',
     '20220314143954'
 ]
 
@@ -63,6 +63,8 @@ for f_i, file_name in enumerate(file_names):
                         n_init = n_reg_init + (model_type != 'sogpr') * n_reg_lf_init
                         n_reg_slice = lf_slice[(n_reg_init, n_reg_lf_init)]
                         x_hist, y_hist, RAAEs, RMSTDs = n_reg_slice.values()
+                        # print(x_hist[:, -1])
+                        costs = []
                         # print(x_hist, y_hist)
                         y_hist_min = np.minimum.accumulate(y_hist)
                         x_hist_init, x_hist_opt = x_hist[:n_init], x_hist[n_init:]
@@ -99,8 +101,23 @@ for f_i, file_name in enumerate(file_names):
         # cokg_rel = np.log10((sogpr_bests - y_opts + reg_f) / (cokg_bests - y_opts + reg_f))
         # stmf_rel = np.log10((sogpr_bests - y_opts + reg_f) / (stmf_bests - y_opts + reg_f))
 
+        # print(sogpr_bests - y_opts)
+        # print(cokg_bests - y_opts)
+        # print(stmf_bests - y_opts)
+
         cokg_rel = np.log10(np.maximum(sogpr_bests - y_opts, reg_f) / np.maximum(cokg_bests - y_opts, reg_f))
         stmf_rel = np.log10(np.maximum(sogpr_bests - y_opts, reg_f) / np.maximum(stmf_bests - y_opts, reg_f))
+
+        # list1 = [f.name for f in fs]
+        # list2 = list(cokg_rel)
+        # list3 = list(stmf_rel)
+        #
+        # print([(p, s) for (p, s) in zip(list1, list2)])
+        # print([(p, s) for (p, s) in zip(list1, list3)])
+
+        # print([f.name for f in fs])
+        # print(cokg_rel)
+        # print(stmf_rel)
 
         # good_indices = [i for (i, _) in enumerate(sogpr_diffs) if sogpr_diffs[i] != 0 and cokg_diffs[i] != 0 and stmf_diffs[i] != 0]
         # print(good_indices)

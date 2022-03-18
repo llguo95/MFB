@@ -110,18 +110,29 @@ def Comsol_Sim():
 #     return (x[0] ** 2 + x[1] ** 2) / 2 + x[0]
 #     # return np.sin(x + 1) + .1 * x
 
-def Comsol_Sim_high(x):
-    print("HIGH")
-    x0=x[0]*10-5
-    x1=x[1]*10-5
-    return ((x0 ** 4 - 16 * x0 ** 2 + 5 * x0 )/2 + (x1 ** 4 - 16 * x1 ** 2 + 5 * x1 )/2)
+# def Comsol_Sim_high(x):
+#     print("HIGH")
+#     x0=x[0]*10-5
+#     x1=x[1]*10-5
+#     return ((x0 ** 4 - 16 * x0 ** 2 + 5 * x0 )/2 + (x1 ** 4 - 16 * x1 ** 2 + 5 * x1 )/2)
+#
+#
+# def Comsol_Sim_low(x):
+#     print("LOW")
+#     x0=x[0]*10-5
+#     x1=x[1]*10-5
+#     return ((x0 ** 4 - 16 * x0 ** 2 + 5 * x0 )/2 + (x1 ** 4 - 16 * x1 ** 2 + 5 * x1 )/2)*0.1+x0-x1
 
+def Comsol_Sim_high(x):
+    # print("HF Functional call happened")     # Print to check whether the function is called
+    X=x*10 - 5                               # transfering the value [0,1] to [-5,5]
+    return np.sum((X**4-16*X**2+5*X)/2)      # Calculating (x^4-16x^2+5x)/2 for each x, and sum
 
 def Comsol_Sim_low(x):
-    print("LOW")
-    x0=x[0]*10-5
-    x1=x[1]*10-5
-    return ((x0 ** 4 - 16 * x0 ** 2 + 5 * x0 )/2 + (x1 ** 4 - 16 * x1 ** 2 + 5 * x1 )/2)*0.1+x0-x1
+    # print("LF Functional call happened")                   # Print to check whether the function is called
+    X=x*10 - 5                                             # transfering the value [0,1] to [-5,5]
+    # return np.sum((X**4-16*X**2+5*X)/2)*0.1+(X[0]-X[1])*1      # Calculating (x^4-16x^2+5x)/2 for each x, and sum with bias
+    return np.sum((X**4-16*X**2+5*X)/2)*0.1+(X[0]-X[1])*0.01     # Calculating (x^4-16x^2+5x)/2 for each x, and sum with bias
 
 
 class Cost(Acquisition):

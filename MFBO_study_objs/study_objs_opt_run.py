@@ -5,7 +5,7 @@ import torch
 from MFproblem import MFProblem
 from main import bo_main
 import pybenchfunction
-# from pybenchfunction import function
+from pybenchfunction import function
 from objective_formatter import botorch_TestFunction, AugmentedTestFunction
 
 tkwargs = {
@@ -16,9 +16,9 @@ tkwargs = {
 
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
 excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
-fs = [f for f in f_class_list if f.name not in excluded_fs]
+# fs = [f for f in f_class_list if f.name not in excluded_fs]
 # fs = [function.AlpineN2, function.Ridge, function.Schwefel, function.Ackley]
-# fs = [function.StyblinskiTang]
+fs = [function.StyblinskiTang]
 
 dim = 1
 LF = .8
@@ -35,7 +35,7 @@ problem = [
         cost_ratio=cost_ratio
     )
     for f in fs
-]
+][:1]
 
 print([p.objective_function.name for p in problem])
 
@@ -45,7 +45,7 @@ n_reg = [5]
 n_reg_lf = [10]
 scramble = False
 noise_fix = False
-budget = 25
+budget = 10
 
 data_agg = []
 

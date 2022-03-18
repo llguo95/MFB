@@ -1,0 +1,1 @@
+{'problem': ['AugmentedAckley'], 'model_type': ['sogpr'], 'lf': [0.5], 'n_reg': [5], 'n_reg_lf': [15], 'scramble': True, 'noise_fix': True, 'noise_type': 'b', 'dim': 1}

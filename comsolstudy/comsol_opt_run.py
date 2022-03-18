@@ -2,8 +2,8 @@ import time
 import pickle
 import torch
 
-from MFB.MFproblem import MFProblem
-from MFB.main import bo_main
+from MFproblem import MFProblem
+from main import bo_main
 from objective_formatter import ComsolTestFunction
 
 tkwargs = {
@@ -17,7 +17,7 @@ tkwargs = {
 
 dim = 2
 LF = .8
-cost_ratio = 10
+cost_ratio = 5
 
 problem = [
     MFProblem(
@@ -27,13 +27,13 @@ problem = [
     )
 ]
 
-model_type = ['cokg']
+model_type = ['sogpr', 'cokg', 'stmf']
 lf = [LF]
 n_reg = [10]
-n_reg_lf = [20]
+n_reg_lf = [10]
 scramble = False
 noise_fix = False
-budget = 30
+budget = 75
 
 data_agg = []
 

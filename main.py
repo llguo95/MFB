@@ -350,7 +350,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                     train_x_high = torch.tensor([])
                     train_obj_high = torch.tensor([])
 
-                    cumulative_cost = 0.0
+                    cumulative_cost = 0.0 # change into TOTAL cost (+ intiial DoE cost)
 
                     opt_data = {}
                     _ = 0
@@ -425,6 +425,8 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                         #                         color='orange')
                         #     plt.plot(test_x_list, pm_one * exact_y, 'k--')
                         _ += 1
+
+                    # print(problem_el.get_recommendation(model))
 
                     # print(train_x_init)
 
