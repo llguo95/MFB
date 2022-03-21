@@ -80,7 +80,7 @@ class MFProblem:
         bds = self.objective_function._bounds
 
         if lf_mult is None:
-            if model_type is not 'sogpr':
+            if model_type != 'sogpr':
                 n_tot = n + n_lf
             else:
                 n_tot = n
@@ -160,7 +160,7 @@ class MFProblem:
                 train_obj[:n],
                 input_transform=Normalize(d=self.objective_function.dim - 1, bounds=bds),
                 outcome_transform=Standardize(m=1),
-                covar_module=ScaleKernel(LinearKernel())
+                covar_module=ScaleKernel(RBFKernel())
             )
 
         else:
@@ -232,7 +232,7 @@ class MFProblem:
         train_f = self.fidelities[torch.randint(2, (16, 1))]
         candidate_set_full = torch.cat((candidate_set, train_f), dim=1)
 
-        if model._get_name() is not 'SingleTaskGP':
+        if model._get_name() != 'SingleTaskGP':
             acq = qMultiFidelityMaxValueEntropy(
                 model=model,
                 candidate_set=candidate_set_full,
@@ -259,7 +259,7 @@ class MFProblem:
     def optimize_mfacq_and_get_observation(self, acq_f):
 
         cost = None
-        if acq_f.model._get_name() is not 'SingleTaskGP':
+        if acq_f.model._get_name() != 'SingleTaskGP':
             """Optimizes MFKG and returns a new candidate, observation, and cost."""
             aug_bounds = torch.hstack((self.bounds, torch.tensor([[0], [1]])))
             candidates, _ = optimize_acqf_mixed(

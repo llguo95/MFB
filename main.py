@@ -37,6 +37,17 @@ def ucb(mean_x, var_x, kappa):
     res = mean_x - kappa * np.sqrt(np.abs(var_x))
     return res
 
+def uniform_grid(bl, tr, n, mesh=False):
+    coord_axes = [np.linspace(bl_c, tr_c, n_c) for (bl_c, tr_c, n_c) in zip(bl, tr, n)]
+    coord_mesh = np.array(np.meshgrid(*coord_axes))
+    s = coord_mesh.shape
+    coord_list = coord_mesh.reshape((s[0], np.prod(s[1:]))).T
+    if mesh:
+        res = coord_mesh, coord_list
+    else:
+        res = coord_list
+    return res
+
 vis = 0
 
 def reg_main(
@@ -147,6 +158,22 @@ def reg_main(
                         ########################
                         ### Post-processing ####
                         ########################
+
+                        vis2d = False
+                        if vis2d:
+                            if dim - 1 == 2:
+                                # print(bds)
+                                coord_mesh, _ = uniform_grid(bl=bds[0], tr=bds[1], n=[22, 22], mesh=True)
+                                fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+                                ax.plot_surface(coord_mesh[0], coord_mesh[1], test_y_list_high.reshape(coord_mesh[0].shape), cmap='viridis', linewidth=0, alpha=.5)
+                                ax.scatter(train_x[:n_reg_el][:, 0], train_x[:n_reg_el][:, 1], train_y_high, c='r', s=50)
+                                plt.tight_layout()
+                            elif dim - 1 == 1:
+                                plt.figure()
+                                coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
+                                plt.plot(coord_list, test_y_list_high)
+                                plt.scatter(train_x[:n_reg_el][:, 0], train_y_high, c='r')
+                                plt.tight_layout()
 
                         RAAE = np.mean(np.abs(exact_y.reshape(np.shape(test_y_list_high)) - test_y_list_high)) / np.std(
                             exact_y)
@@ -377,7 +404,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                         mfacq = problem_el.get_mfacq(model)
                         new_x, new_obj, cost = problem_el.optimize_mfacq_and_get_observation(mfacq)
 
-                        if model_type_el is not 'sogpr':
+                        if model_type_el != 'sogpr':
                             train_x = torch.cat([train_x, new_x])
                             train_obj = torch.cat([train_obj, new_obj])
                             cumulative_cost += cost

@@ -155,11 +155,7 @@ def trainer(
         fit_gpytorch_model(mll)
     return model
 
-
-import numpy as np
-import torch
 from scipy.stats import norm
-
 
 def ei(mean_x, var_x, f_inc):
     mean_x = -mean_x  # minimization

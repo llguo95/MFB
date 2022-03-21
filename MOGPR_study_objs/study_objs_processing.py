@@ -9,7 +9,7 @@ folder_path = 'data/'
 
 file_names = [
     # dim 1
-    # '20220218110629', # mf, 5LF b
+    '20220218110629', # mf, 5LF b
     # '20220218172924', # mf, 5LF bn
     # '20220222193253', # mf, 15LF b
     # '20220225131321', # mf, 15LF b, RBF test (mtask)
@@ -20,16 +20,20 @@ file_names = [
     # '20220222132448', # mf, 30LF bn, matern test (cokg)
 
     # dim 2
-    '20220222143107', # mf, 75LF bn
+    # '20220321173235', # mf, 25LF b
+    # '20220222143107', # mf, 75LF bn
     # '20220222185639', # mf, 75LF b
+
 
     # dim 1
     # '20220211170131', # sogpr, 6HF
+    '20220321140252', # sogpr, 6HF
     # '20220221174116', # sogpr, 7HF
     # '20220221174326', # sogpr, 8HF
 
     # dim 2
-    '20220222144503' # sogpr, 30HF
+    # '20220321141651',  # sogpr 25HF
+    # '20220222144503', # sogpr 30HF
 ]
 
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
@@ -111,11 +115,12 @@ for mf_i, mf_scenario in enumerate(mrmv_mf):
             prop, nonprop = [], []
             for stat_i, stat in enumerate(prob_stat_vec):
                 # print(fs[stat_i].name, fs[stat_i].convex)
-                (nonprop, prop)[fs[stat_i].multimodal is False].append(stat)
+                (nonprop, prop)[fs[stat_i].convex is True].append(stat)
 
             df_data[lf] = prob_stat_vec
             print()
             # print(model_type, lf, 10 ** np.median(prob_stat_vec), [10 ** np.quantile(prob_stat_vec, q=.25), 10 ** np.quantile(prob_stat_vec, q=.75)])
+            # print(model_type, lf, 10 ** (np.median(prob_stat_vec) + 2) - 100, [np.quantile(prob_stat_vec, q=.25), np.quantile(prob_stat_vec, q=.75)])
             print(model_type, lf, np.median(prob_stat_vec), [np.quantile(prob_stat_vec, q=.25), np.quantile(prob_stat_vec, q=.75)])
             print(model_type, lf, 'prop', np.median(prop), [np.quantile(prop, q=.25), np.quantile(prop, q=.75)])
             print(model_type, lf, 'nonprop', np.median(nonprop), [np.quantile(nonprop, q=.25), np.quantile(nonprop, q=.75)])
