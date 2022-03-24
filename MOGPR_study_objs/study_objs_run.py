@@ -23,7 +23,7 @@ fs = [f for f in f_class_list if f.name not in excluded_fs]
 # fs = [function.AlpineN2]
 
 dim = 2
-noise_type = 'b'
+noise_type = 'bn'
 
 problem = [
     MFProblem(
@@ -34,16 +34,16 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-]
+][22:23]
 
 # print([(i, f.name) for (i, f) in enumerate(fs)])
 
-model_type = ['cokg', 'cokg_dms', 'mtask']
-lf = [.1, .5, .9]
-n_reg = [25]
-n_reg_lf = [25]
-scramble = True
-noise_fix = False
+model_type = ['cokg']
+lf = [.5]
+n_reg = [20]
+n_reg_lf = [20]
+scramble = False
+noise_fix = True
 
 # model_type = ['mtask']
 # lf = [.1, .5, .9]
@@ -78,15 +78,15 @@ metadata['dim'] = dim
 folder_path = 'data/'
 file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
 
-open_file = open(folder_path + file_name + '.pkl', 'wb')
-pickle.dump(data, open_file)
-open_file.close()
-
-open_file = open(folder_path + file_name + '_metadata.pkl', 'wb')
-pickle.dump(metadata, open_file)
-open_file.close()
-
-with open(folder_path + file_name + '_metadata.txt', 'w') as data:
-    data.write(str(metadata))
+# open_file = open(folder_path + file_name + '.pkl', 'wb')
+# pickle.dump(data, open_file)
+# open_file.close()
+#
+# open_file = open(folder_path + file_name + '_metadata.pkl', 'wb')
+# pickle.dump(metadata, open_file)
+# open_file.close()
+#
+# with open(folder_path + file_name + '_metadata.txt', 'w') as data:
+#     data.write(str(metadata))
 
 plt.show()

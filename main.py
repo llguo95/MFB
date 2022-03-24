@@ -159,7 +159,7 @@ def reg_main(
                         ### Post-processing ####
                         ########################
 
-                        vis2d = False
+                        vis2d = True
                         if vis2d:
                             if dim - 1 == 2:
                                 # print(bds)
@@ -168,6 +168,8 @@ def reg_main(
                                 ax.plot_surface(coord_mesh[0], coord_mesh[1], test_y_list_high.reshape(coord_mesh[0].shape), cmap='viridis', linewidth=0, alpha=.5)
                                 ax.scatter(train_x[:n_reg_el][:, 0], train_x[:n_reg_el][:, 1], train_y_high, c='r', s=50)
                                 plt.tight_layout()
+
+                                print(model.covar_module.base_kernel)
                             elif dim - 1 == 1:
                                 plt.figure()
                                 coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
