@@ -54,20 +54,32 @@ class MFProblem:
             fidelities: Tensor = None,
     ):
         self.objective_function = objective_function
+        self.cost_ratio = cost_ratio
         self.fidelities = fidelities if fidelities is not None else torch.tensor([0.5, 1.0], **tkwargs)
 
         bounds = torch.tensor(objective_function._bounds, **tkwargs).transpose(0, 1)
         # print(bounds)
-        lf = self.fidelities[0]
-        a = (1 - 1 / cost_ratio) / (1 - lf)
-        cost_model = AffineFidelityCostModel(fidelity_weights={
-            objective_function.dim - 1: a
-        }, fixed_cost=1 - a)
-        cost_aware_utility = InverseCostWeightedUtility(cost_model=cost_model)
+        # lf = self.fidelities[0]
+        # a = (1 - 1 / cost_ratio) / (1 - lf)
+        # cost_model = AffineFidelityCostModel(fidelity_weights={
+        #     objective_function.dim - 1: a
+        # }, fixed_cost=1 - a)
+        # cost_aware_utility = InverseCostWeightedUtility(cost_model=cost_model)
 
         self.bounds = bounds
-        self.cost_model = cost_model
-        self.cost_aware_utility = cost_aware_utility
+        # self.cost_model = cost_model
+        # self.cost_aware_utility = cost_aware_utility
+
+    def cost_model(self):
+        lf = self.fidelities[0]
+        a = (1 - 1 / self.cost_ratio) / (1 - lf)
+        cost_model = AffineFidelityCostModel(fidelity_weights={
+            self.objective_function.dim - 1: a
+        }, fixed_cost=1 - a)
+        return cost_model
+
+    def cost_aware_utility(self):
+        return InverseCostWeightedUtility(cost_model=self.cost_model())
 
     ##########################
     #### Data initializer ####
@@ -237,7 +249,7 @@ class MFProblem:
                 model=model,
                 candidate_set=candidate_set_full,
                 num_fantasies=128 if not SMOKE_TEST else 2,
-                cost_aware_utility=self.cost_aware_utility,
+                cost_aware_utility=self.cost_aware_utility(),
             )
         else:
             acq = qMaxValueEntropy(
@@ -274,9 +286,10 @@ class MFProblem:
                 sequential=True
             )
             # observe new values
-            cost = self.cost_model(candidates).sum()
+            cost = self.cost_model()(candidates).sum()
             # print(self.fidelities)
             # print(cost)
+            # print(self.fidelities)
             new_x = candidates
             new_obj = self.objective_function(new_x).unsqueeze(-1)
         else:

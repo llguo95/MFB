@@ -159,7 +159,7 @@ def reg_main(
                         ### Post-processing ####
                         ########################
 
-                        vis2d = True
+                        vis2d = False
                         if vis2d:
                             if dim - 1 == 2:
                                 # print(bds)
@@ -311,7 +311,7 @@ def scale_to_unit(x, bds):
     return res
 
 def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=True,
-            n_inf=500, random=False, noise_fix=True, n_reg_lf_init=None, budget=25,):
+            n_inf=500, random=False, noise_fix=True, n_reg_lf_init=None, budget=None,):
     if problem is None:
         problem = [
             MFProblem(
@@ -344,14 +344,21 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
         'scramble': scramble,
         'noise_fix': noise_fix,
         'budget': budget,
-        'noise_type': [p.objective_function.noise_type for p in problem]
+        'noise_type': [p.objective_function.noise_type for p in problem][0],
+        'dim': [p.objective_function.dim for p in problem][0] - 1,
+        'cost_ratio': [p.cost_ratio for p in problem][0],
     }
 
     model_type_data = {}
     for model_type_el in model_type:
+        print()
+        print(model_type_el)
 
         problem_data = {}
         for problem_el in problem:
+            print()
+            print(problem_el.objective_function.name)
+
             if vis:
                 plt.figure(num=problem_el.objective_function.name)
             pm_one = 2 * (.5 - problem_el.objective_function.negate)
@@ -362,9 +369,15 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
 
             lf_data = {}
             for lf_el in lf:
+                print()
+                print('lf =', lf_el)
 
                 n_reg_init_data = {}
                 for n_reg_init_el, n_reg_lf_init_el in zip(n_reg_init, n_reg_lf_init):
+                    print()
+                    print('n_reg =', n_reg_init_el)
+                    print('n_reg_lf_el =', n_reg_lf_init_el)
+
                     problem_el.fidelities = torch.tensor([lf_el, 1.0], **tkwargs)
 
                     (train_x, train_y_high, train_obj,
@@ -384,8 +397,28 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                     opt_data = {}
                     _ = 0
                     RAAEs, RMSTDs = [], []
+
+                    mll, model = problem_el.initialize_model(train_x, train_obj, model_type=model_type_el)
+                    if noise_fix:
+                        cons = Interval(1e-4, 1e-4 + 1e-10)
+                        model.likelihood.noise_covar.register_constraint("raw_noise", cons)
+                    fit_gpytorch_model(mll)
+
+                    (test_y_list_high, test_y_var_list_high) = posttrainer(
+                        model, model_type_el, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high,
+                    )
+
+                    RAAE = np.mean(np.abs(exact_y.reshape(np.shape(test_y_list_high)) - test_y_list_high)) / np.std(
+                        exact_y)
+                    RAAEs.append(RAAE)
+
+                    RMSTD = np.mean(np.sqrt(np.abs(test_y_var_list_high))) / (max(exact_y) - min(exact_y))
+                    RMSTDs.append(RMSTD)
+
+                    opt_cost_history = [cumulative_cost]
+
                     while cumulative_cost < budget:
-                        if _ % 5 == 0: print(_)
+                        if _ % 5 == 0: print('iteration', _, ',', float(100 * cumulative_cost / budget), '% of budget')
                         mll, model = problem_el.initialize_model(train_x, train_obj, model_type=model_type_el)
                         if noise_fix:
                             cons = Interval(1e-4, 1e-4 + 1e-10)
@@ -453,6 +486,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                         #             plt.scatter(new_x[0][0], pm_one * new_obj[0][0], s=size,
                         #                         color='orange')
                         #     plt.plot(test_x_list, pm_one * exact_y, 'k--')
+                        opt_cost_history.append(cumulative_cost)
                         _ += 1
 
                     # print(problem_el.get_recommendation(model))
@@ -481,6 +515,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                     opt_data['y_hist'] = pm_one * train_obj
                     opt_data['RAAE'] = torch.tensor(RAAEs).to(**tkwargs)[:, None]
                     opt_data['RMSTD'] = torch.tensor(RMSTDs).to(**tkwargs)[:, None]
+                    opt_data['opt_cost_history'] = opt_cost_history
                     # opt_data['y_hist_norm'] = np.hstack((y_hist_norm[:, None], train_x[:, -1].detach().numpy()[:, None]))
 
                     n_reg_init_data[(n_reg_init_el, n_reg_lf_init_el)] = opt_data

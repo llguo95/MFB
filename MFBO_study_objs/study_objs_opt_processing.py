@@ -11,7 +11,7 @@ folder_path = 'data/'
 file_names = [
     # '20220309172200',
     # '20220309174208',
-    '20220314143954'
+    '20220314143954' # b
 ]
 
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
@@ -63,18 +63,23 @@ for f_i, file_name in enumerate(file_names):
                         n_init = n_reg_init + (model_type != 'sogpr') * n_reg_lf_init
                         n_reg_slice = lf_slice[(n_reg_init, n_reg_lf_init)]
                         x_hist, y_hist, RAAEs, RMSTDs = n_reg_slice.values()
+                        print(len(y_hist), len(RAAEs))
+
+                        if model_type == 'sogpr':
+                            plt.figure(num='RAAEs')
+                            plt.plot((RAAEs - RAAEs[0]) / (torch.amax(RAAEs) - torch.amin(RAAEs)))
+
+                            plt.figure(num='RMSTDs')
+                            plt.plot((RMSTDs - RMSTDs[0]) / (torch.amax(RMSTDs) - torch.amin(RMSTDs)))
+                        # print('RMSTDs', RMSTDs[n_init:])
                         # print(x_hist[:, -1])
                         costs = []
-                        # print(x_hist, y_hist)
+
                         y_hist_min = np.minimum.accumulate(y_hist)
                         x_hist_init, x_hist_opt = x_hist[:n_init], x_hist[n_init:]
                         y_hist_opt_min = y_hist_min[n_init:]
-                        # print(x_hist_init, x_hist_opt)
-                        # print(y_hist_opt_min)
 
                         y_hist_opt_min_high = torch.tensor([(i, y_hist_opt_min[i]) for (i, _) in enumerate(x_hist_opt) if x_hist_opt[i, 1] == 1])
-                        # print(problem, model_type, y_hist_min[:n_init], y_hist_opt_min_high)
-                        # print(problem, model_type, y_hist_opt_min_high[-1, 1])
                         if problem != 'AugmentedQing':
                             y_opts[problem_i] = torch.tensor([y_opt])
                         else:

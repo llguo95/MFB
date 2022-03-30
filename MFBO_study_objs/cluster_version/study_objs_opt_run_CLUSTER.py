@@ -40,10 +40,8 @@ problem = [
     for f in fs
 ][:1]
 
-# model_type = ['sogpr', 'cokg', 'stmf']
-model_type = ['stmf']
-# lf = [0.5, 0.9]
-lf = [0.9]
+model_type = ['sogpr', 'cokg', 'stmf']
+lf = [0.5, 0.9]
 n_reg = [5 ** dim]
 n_reg_lf = [2 * 5 ** dim]
 scramble = False
@@ -54,10 +52,6 @@ data_agg = []
 
 _ = 0
 while _ < 1:
-    # try:
-    # print()
-    # print(_)
-    # print()
     data, metadata = bo_main(
         problem=problem,
         model_type=model_type,
@@ -70,14 +64,6 @@ while _ < 1:
     )
     data_agg.append(data)
     _ += 1
-    # except:
-    #     print('cokg failure')
-    #     continue
-
-# print(data_agg)
-
-# metadata['dim'] = dim
-# metadata['cost_ratio'] = cost_ratio
 
 folder_path = 'data/'
 file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
@@ -93,5 +79,3 @@ open_file.close()
 
 with open(folder_path + file_name + suffix + '_metadata.txt', 'w') as data:
     data.write(str(metadata))
-
-# plt.show()
