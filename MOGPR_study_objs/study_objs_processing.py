@@ -6,84 +6,92 @@ import numpy as np
 import pandas as pd
 import pybenchfunction
 
+from matplotlib import colors
+
 folder_path = 'data/'
 
-file_names_OLD = [
-    # dim 1
-    # '20220218110629', # mf, 5LF b
-    # '20220218172924', # mf, 5LF bn
-    # '20220222193253', # mf, 15LF b
-    # '20220225131321', # mf, 15LF b, RBF test (mtask)
-    # '20220222174825', # mf, 15LF bn
-    # '20220211165001', # mf, 30LF b
-    # '20220218144547', # mf, 30LF b, matern test (cokg)
-    # '20220218180630', # mf, 30LF bn
-    # '20220222132448', # mf, 30LF bn, matern test (cokg)
-    # '20220322145732_1d_b_nf_0_m', # mf, b, noise UNFIXED
-    # '20220322144906', # mf, b, noise FIXED
+# file_names_OLD = [
+#     # dim 1
+#     # '20220218110629', # mf, 5LF b
+#     # '20220218172924', # mf, 5LF bn
+#     # '20220222193253', # mf, 15LF b
+#     # '20220225131321', # mf, 15LF b, RBF test (mtask)
+#     # '20220222174825', # mf, 15LF bn
+#     # '20220211165001', # mf, 30LF b
+#     # '20220218144547', # mf, 30LF b, matern test (cokg)
+#     # '20220218180630', # mf, 30LF bn
+#     # '20220222132448', # mf, 30LF bn, matern test (cokg)
+#     # '20220322145732_1d_b_nf_0_m', # mf, b, noise UNFIXED
+#     # '20220322144906', # mf, b, noise FIXED
+#
+#     # dim 2
+#     # '20220321173235', # mf, 25LF b
+#     # '20220222143107', # mf, 75LF bn
+#     # '20220222185639', # mf, 75LF b
+#     # '20220323024607_2d_b_nf_0_m', # mf, b, noise UNFIXED
+#
+#     # dim 1
+#     # '20220211170131', # sogpr, 6HF
+#     # '20220322112515',  # sogpr, 5HF
+#     # '20220322174532_1d_b_nf_0_s', # sogpr, 6HF noise UNFIXED
+#
+#     # '20220321140252', # sogpr, 6HF noise FIXED
+#     # '20220221174116', # sogpr, 7HF
+#     # '20220221174326', # sogpr, 8HF
+#
+#     # dim 2
+#     # '20220321141651', # sogpr 25HF
+#     # '20220222144503', # sogpr 30HF noise UNFIXED
+#
+#     # '20220322180144_2d_b_nf_0_s' # sogpr 30HF
+# ]
 
-    # dim 2
-    # '20220321173235', # mf, 25LF b
-    # '20220222143107', # mf, 75LF bn
-    # '20220222185639', # mf, 75LF b
-    # '20220323024607_2d_b_nf_0_m', # mf, b, noise UNFIXED
-
-    # dim 1
-    # '20220211170131', # sogpr, 6HF
-    # '20220322112515',  # sogpr, 5HF
-    # '20220322174532_1d_b_nf_0_s', # sogpr, 6HF noise UNFIXED
-
-    # '20220321140252', # sogpr, 6HF noise FIXED
-    # '20220221174116', # sogpr, 7HF
-    # '20220221174326', # sogpr, 8HF
-
-    # dim 2
-    # '20220321141651', # sogpr 25HF
-    # '20220222144503', # sogpr 30HF noise UNFIXED
-
-    # '20220322180144_2d_b_nf_0_s' # sogpr 30HF
-]
-
-file_names = [
-    ### MF DATA ###
-    # dim 1
-    '20220322145732_1d_b_nf_0_m', # mf, b, noise UNFIXED
-    # '20220324171126_1d_bn_nf_0_m', # mf, bn, noise UNFIXED
-
-    # dim 2
-    # '20220323024607_2d_b_nf_0_m', # mf, b, noise UNFIXED
-    # '20220324183325_2d_bn_nf_0_m', # mf, bn, noise UNFIXED
-
-    # dim 3
-    # '20220326111937_3d_bn_nf_0_m', # mf, bn, noise UNFIXED
-    # '20220327202931_3d_b_nf_0_m', # mf, b, noise UNFIXED
-
-    ### SF DATA ###
-    # dim 1
-    '20220322174532_1d_b_nf_0_s', # sogpr, 6HF, noise UNFIXED
-
-    # dim 2
-    # '20220322180144_2d_b_nf_0_s', # sogpr 30HF, noise UNFIXED
-
-    # dim 3
-    # '20220323102210_3d_b_nf_0_s', # sogpr 150HF, noise UNFIXED
-]
+# file_names = [
+#     ### MF DATA ###
+#     # dim 1
+#     '20220322145732_1d_b_nf_0_m', # mf, b, noise UNFIXED
+#     # '20220324171126_1d_bn_nf_0_m', # mf, bn, noise UNFIXED
+#
+#     # dim 2
+#     # '20220323024607_2d_b_nf_0_m', # mf, b, noise UNFIXED
+#     # '20220324183325_2d_bn_nf_0_m', # mf, bn, noise UNFIXED
+#
+#     # dim 3
+#     # '20220326111937_3d_bn_nf_0_m', # mf, bn, noise UNFIXED
+#     # '20220327202931_3d_b_nf_0_m', # mf, b, noise UNFIXED
+#
+#     ### SF DATA ###
+#     # dim 1
+#     '20220322174532_1d_b_nf_0_s', # sogpr, 6HF, noise UNFIXED
+#
+#     # dim 2
+#     # '20220322180144_2d_b_nf_0_s', # sogpr 30HF, noise UNFIXED
+#
+#     # dim 3
+#     # '20220323102210_3d_b_nf_0_s', # sogpr 150HF, noise UNFIXED
+# ]
 
 files_dict = {
     1: {
         'b': '20220322145732_1d_b_nf_0_m',
-        'bn': '20220324171126_1d_bn_nf_0_m',
-        'sogpr': '20220322174532_1d_b_nf_0_s'
+        'n': '20220331164922_1d_n_nf_0_m',
+        # 'bn': '20220324171126_1d_bn_nf_0_m',
+        'bn': '20220328214739_1d_bn_nf_0_m',
+        'sogpr': '20220322174532_1d_b_nf_0_s',
     },
     2: {
         'b': '20220323024607_2d_b_nf_0_m',
-        'bn': '20220324183325_2d_bn_nf_0_m',
-        'sogpr': '20220322180144_2d_b_nf_0_s'
+        # 'bn': '20220324183325_2d_bn_nf_0_m',
+        'bn': '20220328225544_2d_bn_nf_0_m',
+        'sogpr': '20220322180144_2d_b_nf_0_s',
+        'bn_exp': '20220404161017_2d_bn_nf_0_m',
     },
     3: {
-        'b': '20220327202931_3d_b_nf_0_m',
-        'bn': '20220326111937_3d_bn_nf_0_m',
-        'sogpr': '20220323102210_3d_b_nf_0_s'
+        # 'b': '20220327202931_3d_b_nf_0_m',
+        'b': '20220401022805_3d_b_nf_0_m',
+        # 'bn': '20220326111937_3d_bn_nf_0_m',
+        'bn': '20220331103524_3d_bn_nf_0_m',
+        'sogpr': '20220323102210_3d_b_nf_0_s',
     }
 }
 
@@ -102,18 +110,24 @@ processed_data_mf = {}
 processed_metadata = {}
 
 show_histograms = 0
-show_boxplots = 0
-show_contours = 1
+show_boxplots = 1
+show_contours = 0
+show_sogpr_dim = 0
 
 log_ratio_grids = {}
+RAAEs_sogpr_dim = []
+RAAEs_mogpr_dim = []
 for dim_i, dim in enumerate([1, 2, 3]):
+    if dim != 2: continue
     files_dict_dim = files_dict[dim]
 
     # print(dim)
 
     noise_type_data = {}
     RAAE_medians_dict_noisetype = {}
-    for noise_type_i, noise_type in enumerate(['b', 'bn', 'sogpr']):
+    for noise_type_i, noise_type in enumerate(['b', 'n', 'bn', 'sogpr', 'bn_exp']):
+        if noise_type == 'n' and dim != 1: continue
+        if noise_type == 'bn_exp' and dim != 2: continue
         files_dict_noise_type = files_dict_dim[noise_type]
 
         open_file = open(folder_path + files_dict_noise_type + '.pkl', 'rb')
@@ -143,7 +157,7 @@ for dim_i, dim in enumerate([1, 2, 3]):
 
                 problem_data = {}
                 for problem_no, problem in enumerate(metadata['problem']):
-                    if problem == 'AugmentedRidge' and metadata['dim'] == 1: continue
+                    # if problem == 'AugmentedRidge' and metadata['dim'] == 1: continue
 
                     problem_slice = model_type_slice[problem]
                     lf_slice = problem_slice[lf]
@@ -172,32 +186,69 @@ for dim_i, dim in enumerate([1, 2, 3]):
 
     processed_data_mf[dim] = noise_type_data
 
-    for noise_type_i, noise_type in enumerate(['b', 'bn']):
+    for noise_type_i, noise_type in enumerate(['b', 'n', 'bn', 'bn_exp']):
+        if noise_type == 'n' and dim != 1: continue
+        if noise_type == 'bn_exp' and dim != 2: continue
         metadata = processed_metadata[(dim, noise_type)]
         # print(noise_type)
         for model_no, model_type in enumerate(metadata['model_type']):
             # print(model_type)
             for lf_i, lf in enumerate(metadata['lf']):
                 # print(lf)
+
+                if noise_type == 'b' and lf == 0.5 and model_type == 'cokg':
+                    RAAEs_sogpr_dim.append(RAAE_medians_dict_noisetype['sogpr']['sogpr'][0.5].flatten())
+
+                if show_sogpr_dim and model_type == 'cokg_dms' and noise_type == 'b' and dim == 1:
+                    plt.figure(num=str(dim) + '_' + noise_type + '_' + model_type + '_' + str(lf) + '_' + 'individual')
+                    plt.boxplot(RAAE_medians_dict_noisetype[noise_type][model_type][lf])
+                    plt.xticks(range(1, 6), [(2 * k + 1) * 5 ** dim for k in range(5)])
+                    plt.grid()
+
                 ratio_noisetype_modeltype = RAAE_medians_dict_noisetype['sogpr']['sogpr'][0.5] / RAAE_medians_dict_noisetype[noise_type][model_type][lf]
                 log_ratio_noisetype_modeltype = np.log10(ratio_noisetype_modeltype)
                 # print(np.median(log_ratio_noisetype_modeltype, axis=0))
 
                 log_ratio_grids[(noise_type, model_type, lf, dim)] = np.median(log_ratio_noisetype_modeltype, axis=0)
 
-                if show_histograms and dim == 1 and noise_type == 'bn' and lf == 0.9:
-                    plt.figure(num=str(dim) + '_' + noise_type + '_' + model_type + '_' + str(lf) + '_' + 'histogram')
-                    plt.hist(log_ratio_noisetype_modeltype[:, 2], bins=20, ec='k')
+                # if show_histograms and dim == 1 and noise_type == 'b' and lf == 0.5 and model_type == 'cokg_dms':
+                if show_histograms and dim == 1:
+                    prop, nonprop = [], []
+                    for stat_i, stat in enumerate(log_ratio_noisetype_modeltype[:, 3]):
+                        (nonprop, prop)[fs[stat_i].convex is True].append(stat)
+                    print(dim, model_type, lf, noise_type, np.median(log_ratio_noisetype_modeltype[:, 3]))
+                    # print('prop', prop, 'nonprop', nonprop)
 
-                if show_boxplots and model_type == 'cokg_dms' and noise_type == 'b' and (lf == 0.5 or lf == 0.9):
+                    # plt.figure(num=str(dim) + '_' + noise_type + '_' + model_type + '_' + str(lf) + '_' + 'histogram')
+                    # # plt.hist(log_ratio_noisetype_modeltype[:, 2], bins=20, ec='k')
+                    # plt.hist((prop, nonprop), bins=20, ec='k', color=['g', 'r'], stacked=True)
+                    # plt.axvline(x=0, color='k', linestyle='--', linewidth=3)
+                    # plt.grid()
+
+                if show_boxplots and noise_type == 'bn_exp' and dim == 2:
                     plt.figure(num=str(dim) + '_' + noise_type + '_' + model_type + '_' + str(lf))
                     plt.boxplot(log_ratio_noisetype_modeltype)
-                    plt.xticks(range(1, 6), [(2 * k + 1) * 5 ** dim for k in range(5)])
+                    plt.xticks(range(1, 16), [(4 * k + 1) * 5 ** dim for k in range(15)])
                     plt.grid()
 
-# print(log_ratio_grids)
+if show_sogpr_dim:
+    plt.figure(num='sogpr')
+    plt.boxplot(np.array(RAAEs_sogpr_dim).T, showfliers=False)
+
+# print(np.amin(list(log_ratio_grids.values())))
+# print(np.quantile(list(log_ratio_grids.values()), q=.1))
+# print(np.quantile(list(log_ratio_grids.values()), q=.9))
+# print(np.amax(list(log_ratio_grids.values())))
 
 if show_contours:
+
+    min_lr, max_lr = np.amin(list(log_ratio_grids.values())), np.amax(list(log_ratio_grids.values()))
+    min_cm, max_cm = min_lr, 1
+
+    divnorm2 = colors.TwoSlopeNorm(vmin=min_cm, vcenter=0., vmax=max_cm)
+    cmap = colors.ListedColormap(['b', 'r', 'r'])
+    divnorm = colors.BoundaryNorm([min_lr, min_cm, max_cm, max_lr], cmap.N)
+
     for noise_type_i, noise_type in enumerate(['b', 'bn']):
         fig, axs = plt.subplots(3, 3, figsize=(9, 9), sharex=True, sharey=True)
         # print(noise_type)
@@ -207,150 +258,23 @@ if show_contours:
                 # print(lf)
                 log_ratio_grid = np.array([log_ratio_grids[(noise_type, model_type, lf, k)] for k in range(1, 4)])
                 # plt.figure(num=noise_type + '_' + model_type + '_' + str(lf) + '_' + 'contour')
-                X, Y = np.meshgrid([1, 3, 5, 7, 9], [1, 2, 3])
+                X, Y = np.meshgrid([5, 15, 25, 35, 45], [1, 2, 3])
                 ax = axs[lf_i, model_no]
                 matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
-                cf = ax.contourf(X, Y, np.array(log_ratio_grid), 50)
-                c = ax.contour(X, Y, np.array(log_ratio_grid), colors='k')
+                cf = ax.contourf(X, Y, np.array(log_ratio_grid), levels=np.linspace(min_lr, max_lr, 50), cmap=cmap, norm=divnorm)
+                cf2 = ax.contourf(X, Y, np.array(log_ratio_grid), levels=np.linspace(min_cm, max_cm, 50), cmap='bwr', norm=divnorm2)
+                c = ax.contour(X, Y, np.array(log_ratio_grid), colors='k', alpha=.75)
                 ax.clabel(c, inline=1, fontsize=6)
                 if lf_i == 2:
-                    ax.set_xlabel('ratio')
+                    ax.set_xlabel('cost ratio')
                 if model_no == 0:
                     ax.set_ylabel('dim')
                 ax.set_title(model_type + ', LF = ' + str(lf))
-                # fig.colorbar(cf, ax=ax)
+
         plt.suptitle('noise type ' + noise_type)
+        # cbar_ax = fig.add_axes([0.9, 0.15, 0.05, 0.7])
         plt.tight_layout()
-# print(data)
-# print(processed_data_mf)
+        # fig.colorbar(cf2, cax=cbar_ax)
 
-# for f_i, file_name in enumerate(file_names):
-#     open_file = open(folder_path + file_name + '.pkl', 'rb')
-#     data = pickle.load(open_file)
-#     open_file.close()
-#
-#     # print(data)
-#
-#     open_file = open(folder_path + file_name + '_metadata.pkl', 'rb')
-#     metadata = pickle.load(open_file)
-#     if f_i == 0:
-#         metadata_mf = metadata
-#     open_file.close()
-#
-#     # print(metadata['budget'])
-#
-#     # mrm = np.zeros((29, len(metadata['model_type'])))
-#     mrm_model_type = {}
-#     for model_no, model_type in enumerate(metadata['model_type']):
-#         model_type_slice = data[model_type]
-#
-#         # print(model_type)
-#
-#         mrm_lf = {}
-#         for lf in metadata['lf']:
-#
-#             # print(lf)
-#
-#             mrm_problem = {}
-#             for problem_no, problem in enumerate(metadata['problem']):
-#                 if problem == 'AugmentedRidge' and metadata['dim'] == 1: continue
-#
-#                 problem_slice = model_type_slice[problem]
-#                 lf_slice = problem_slice[lf]
-#
-#                 # print(problem)
-#
-#                 mrm_n_reg = []
-#                 for n_reg, n_reg_lf in zip(metadata['n_reg'], metadata['n_reg_lf']):
-#                     n_reg_slice = lf_slice[(n_reg, n_reg_lf)]
-#
-#                     # print(n_reg_slice['RAAE_stats']['median'])
-#                     # mrm[problem_no, model_no] = n_reg_slice['RAAE_stats']['median']
-#                     mrm_n_reg.append(n_reg_slice['RAAE_stats']['median'])
-#
-#                     # print(n_reg_slice['RAAE_stats']['quantiles'])
-#                 mrm_problem[problem] = mrm_n_reg
-#             mrm_lf[lf] = mrm_problem
-#         mrm_model_type[model_type] = mrm_lf
-#     mrmv.append(mrm_model_type)
-
-# mrmv_mf, mrmv_sf = mrmv[:-1], mrmv[-1]
-# print(mrmv_mf)
-
-# # print(mrmv_mf)
-# medians_vs_lfs = {0.1: [], 0.5: [], 0.9: []}
-# iqrs_vs_lfs = {0.1: [], 0.5: [], 0.9: []}
-#
-# prob_stat_vecs_tot = np.zeros((len(metadata_mf['lf']), len(metadata_mf['n_reg_lf']), len(metadata_mf['problem'])))
-# for k in range(5):
-#     for mf_i, mf_scenario in enumerate(mrmv_mf):
-#         df_data = {}
-#         for model_type in mf_scenario:
-#             if model_type != 'mtask': continue
-#             # fig, axs = plt.subplots(num=model_type + str(mf_i) + '_' + str((k + 1) * 5 ** metadata['dim']), ncols=1, nrows=3, sharex=True, sharey=True, figsize=(5, 8))
-#             prob_stat_vecs = []
-#             for lf_i, lf in enumerate(metadata_mf['lf']):
-#                 prob_stat_vec = []
-#                 for p_i, problem in enumerate(metadata_mf['problem']):
-#                     if problem == 'AugmentedRidge' and metadata['dim'] == 1: continue
-#                     # mrmv_mf[model_type][problem][lf][0] = mrmv_sf['sogpr'][problem][0.1][0] / mrmv_mf[model_type][problem][lf][0]
-#                     # print(problem, mrmv_sf['sogpr'][problem][0.1][0], mrmv_mf[model_type][problem][lf][0])
-#                     lri = np.log10(mrmv_sf['sogpr'][problem][0.5][0] / mf_scenario[model_type][problem][lf][k])
-#                     # lri = np.log10(mrmv_sf['sogpr'][problem][0.1][0] / mf_scenario[model_type][problem][lf][0])
-#                     # lri = mrmv_sf['sogpr'][problem][0.1][0] / mrmv_mf[model_type][problem][lf][0]
-#                     prob_stat_vec.append(lri)
-#
-#                     prob_stat_vecs_tot[lf_i, k, p_i] = lri
-#
-#                 prop, nonprop = [], []
-#                 for stat_i, stat in enumerate(prob_stat_vec):
-#                     # print(fs[stat_i].name, fs[stat_i].convex)
-#                     (nonprop, prop)[fs[stat_i].convex is True].append(stat)
-#
-#                 df_data[lf] = prob_stat_vec
-#                 # if True: #lf == 0.9:
-#                 #     print()
-#                 #     # print(model_type, lf, 10 ** np.median(prob_stat_vec), [10 ** np.quantile(prob_stat_vec, q=.25), 10 ** np.quantile(prob_stat_vec, q=.75)])
-#                 #     # print(model_type, lf, 10 ** (np.median(prob_stat_vec) + 2) - 100, [np.quantile(prob_stat_vec, q=.25), np.quantile(prob_stat_vec, q=.75)])
-#                 #     print(model_type, lf, np.median(prob_stat_vec), [np.quantile(prob_stat_vec, q=.25), np.quantile(prob_stat_vec, q=.75)])
-#                 #     print(model_type, lf, 'prop', np.median(prop), [np.quantile(prop, q=.25), np.quantile(prop, q=.75)])
-#                 #     print(model_type, lf, 'nonprop', np.median(nonprop), [np.quantile(nonprop, q=.25), np.quantile(nonprop, q=.75)])
-#
-#                 medians_vs_lfs[lf].append(np.median(prob_stat_vec))
-#                 iqrs_vs_lfs[lf].append([np.median(prob_stat_vec) - np.abs(np.quantile(prob_stat_vec, q=.25)),
-#                                         np.median(prob_stat_vec) + np.abs(np.quantile(prob_stat_vec, q=.75))])
-#
-#             #     ax = axs[lf_i]
-#             #     # ax.hist(prob_stat_vec, bins=20, ec='k')
-#             #     ax.hist((prop, nonprop), bins=20, ec='k', color=['g', 'r'], stacked=True)
-#             #     ax.set_title('LF = ' + str(lf))
-#             #     ax.axvline(x=0, color='k', linestyle='--', linewidth=3)
-#             #     if lf_i == 2:
-#             #         ax.set_xlabel('Relative improvement (orders of mag.)')
-#             #     ax.set_ylabel('Frequency')
-#             #     # ax.set_xscale('log')
-#             #     # axs[lf_i].grid()
-#             # plt.tight_layout()
-#             # df = pd.DataFrame(data=df_data, index=metadata_mf['problem'])
-#             # print(df)
-#             #
-#             # df.to_excel('data/' + file_names[0] + '_data_' + model_type + '.xlsx')
-#             #     print(prob_stat_vec)
-#             #     prob_stat_vecs.append(prob_stat_vec)
-#             # print(prob_stat_vecs)
-#             # prob_stat_vecs_tot.append(prob_stat_vecs)
-# # print(prob_stat_vecs_tot)
-#
-# # for lf_i, lf in enumerate(metadata_mf['lf']):
-# #     plt.figure(num=lf_i)
-# #     # print()
-# #     # print(prob_stat_vecs_tot[lf_i])
-# #     plt.boxplot(prob_stat_vecs_tot[lf_i].T)
-# #     plt.xticks(range(1, 6), [(k + 1) * 5 ** metadata['dim'] for k in range(5)])
-# #     # plt.yscale('log')
-# #     plt.grid()
-# #     # plt.errorbar(metadata_mf['n_reg_lf'], [10 ** med for med in medians_vs_lfs[lf]], 10 ** np.array(iqrs_vs_lfs[lf]).T)
-# #     # plt.errorbar(metadata_mf['n_reg_lf'], medians_vs_lfs[lf], np.array(iqrs_vs_lfs[lf]).T)
-# #     # plt.plot(metadata_mf['n_reg'], medians_vs_lfs[lf])
-
+# plt.tight_layout()
 plt.show()

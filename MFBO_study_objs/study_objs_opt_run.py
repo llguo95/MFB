@@ -1,6 +1,7 @@
 import time
 import pickle
 import torch
+from matplotlib import pyplot as plt
 
 from MFproblem import MFProblem
 from main import bo_main
@@ -38,12 +39,12 @@ problem = [
         cost_ratio=cost_ratio
     )
     for f in fs
-][:1]
+][2:3]
 
-# model_type = ['sogpr', 'cokg', 'stmf']
-model_type = ['stmf']
-# lf = [0.5, 0.9]
-lf = [0.9]
+model_type = ['sogpr', 'cokg', 'stmf']
+# model_type = ['sogpr']
+lf = [0.5, 0.9]
+# lf = [0.9]
 n_reg = [5 ** dim]
 n_reg_lf = [2 * 5 ** dim]
 scramble = False
@@ -94,4 +95,4 @@ open_file.close()
 with open(folder_path + file_name + suffix + '_metadata.txt', 'w') as data:
     data.write(str(metadata))
 
-# plt.show()
+plt.show()

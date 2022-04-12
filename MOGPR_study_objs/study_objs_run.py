@@ -22,8 +22,8 @@ fs = [f for f in f_class_list if f.name not in excluded_fs]
 # fs = [function.AlpineN2, function.Ridge, function.Schwefel, function.Ackley]
 # fs = [function.AlpineN2]
 
-dim = 2
-noise_type = 'bn'
+dim = 1
+noise_type = 'b'
 
 problem = [
     MFProblem(
@@ -34,14 +34,14 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-][22:23]
+][2:3]
 
-# print([(i, f.name) for (i, f) in enumerate(fs)])
+print([(i, f.name) for (i, f) in enumerate(fs)])
 
-model_type = ['cokg']
+model_type = ['sogpr', 'mtask']
 lf = [.5]
-n_reg = [20]
-n_reg_lf = [20]
+n_reg = [6]
+n_reg_lf = [12]
 scramble = False
 noise_fix = True
 

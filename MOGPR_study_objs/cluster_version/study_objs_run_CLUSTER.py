@@ -5,6 +5,9 @@ custom_lib_rel_path = '../'
 sys.path.insert(0, custom_lib_rel_path + 'Python_Benchmark_Test_Optimization_Function_Single_Objective')
 import pybenchfunction
 
+sys.path.insert(0, custom_lib_rel_path + 'gpytorch')
+import gpytorch
+
 sys.path.insert(0, custom_lib_rel_path + 'GPy')
 import GPy
 
@@ -33,10 +36,12 @@ tkwargs = {
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
 excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
 fs = [f for f in f_class_list if f.name not in excluded_fs]
+print()
+print([(i, f.name) for (i, f) in enumerate(fs)])
 
 dim = 3
-noise_type = 'b'
-exp_type = 's'
+noise_type = 'n'
+exp_type = 'm'
 
 print()
 print('dim = ', dim)
@@ -65,9 +70,9 @@ if exp_type == 's':
 elif exp_type == 'm':
 
     model_type = ['cokg', 'cokg_dms', 'mtask']
-    lf = [.1, .5, .9]
-    n_reg = [5 ** dim] * 5
-    n_reg_lf = [(k + 1) * 5 ** dim for k in range(5)]
+    lf = [.9]
+    n_reg = [5 ** dim] * 15
+    n_reg_lf = [2 * (2 * k + 1) * 5 ** dim for k in range(15)]
     scramble = True
     noise_fix = 0
 
