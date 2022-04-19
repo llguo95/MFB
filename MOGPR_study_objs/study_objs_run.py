@@ -19,10 +19,7 @@ excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock'
 fs = [f for f in f_class_list if f.name not in excluded_fs]
 # print(len(fs))
 
-# fs = [function.AlpineN2, function.Ridge, function.Schwefel, function.Ackley]
-# fs = [function.AlpineN2]
-
-dim = 1
+dim = 2
 noise_type = 'b'
 
 problem = [
@@ -34,16 +31,17 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-][2:3]
+][16:17]
 
 print([(i, f.name) for (i, f) in enumerate(fs)])
 
-model_type = ['sogpr', 'mtask']
-lf = [.5]
-n_reg = [6]
-n_reg_lf = [12]
-scramble = False
-noise_fix = True
+# model_type = ['sogpr', 'cokg', 'cokg_dms', 'mtask']
+model_type = ['sogpr']
+lf = [.1]
+n_reg = [25]
+n_reg_lf = [125]
+scramble = 1
+noise_fix = 0
 
 # model_type = ['mtask']
 # lf = [.1, .5, .9]
@@ -60,7 +58,18 @@ noise_fix = True
 # noise_fix = True
 
 start = time.time()
-data, metadata = reg_main(
+# data, metadata = reg_main(
+#     problem=problem,
+#     model_type=model_type,
+#     lf=lf,
+#     n_reg=n_reg,
+#     n_reg_lf=n_reg_lf,
+#     scramble=scramble,
+#     noise_fix=noise_fix,
+#     noise_type=noise_type,
+# )
+
+reg_main(
     problem=problem,
     model_type=model_type,
     lf=lf,
@@ -70,10 +79,11 @@ data, metadata = reg_main(
     noise_fix=noise_fix,
     noise_type=noise_type,
 )
-stop = time.time()
-print(stop - start)
 
-metadata['dim'] = dim
+stop = time.time()
+print('total time', stop - start)
+
+# metadata['dim'] = dim
 
 folder_path = 'data/'
 file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())

@@ -20,7 +20,6 @@ import torch
 from matplotlib import pyplot as plt
 
 from MFproblem import MFProblem
-# from main import reg_main
 import pybenchfunction
 from objective_formatter import botorch_TestFunction, AugmentedTestFunction
 
@@ -70,14 +69,14 @@ if exp_type == 's':
 elif exp_type == 'm':
 
     model_type = ['cokg', 'cokg_dms', 'mtask']
-    lf = [.9]
-    n_reg = [5 ** dim] * 15
-    n_reg_lf = [2 * (2 * k + 1) * 5 ** dim for k in range(15)]
+    lf = [.1, .5, .9]
+    n_reg = [5 ** dim] * 4
+    n_reg_lf = [(3 * k + 1) * 5 ** dim for k in range(4)]
     scramble = True
     noise_fix = 0
 
 start = time.time()
-data, metadata = reg_main(
+reg_main(
     problem=problem,
     model_type=model_type,
     lf=lf,
@@ -91,21 +90,21 @@ stop = time.time()
 print()
 print('Run time:', stop - start)
 
-metadata['dim'] = dim
-
-folder_path = 'data/'
-file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
-suffix = '_' + str(dim) + 'd_' + noise_type + '_nf_' + str(noise_fix) + '_' + exp_type
-
-open_file = open(folder_path + file_name + suffix + '.pkl', 'wb')
-pickle.dump(data, open_file)
-open_file.close()
-
-open_file = open(folder_path + file_name + suffix + '_metadata.pkl', 'wb')
-pickle.dump(metadata, open_file)
-open_file.close()
-
-with open(folder_path + file_name + suffix + '_metadata.txt', 'w') as data:
-    data.write(str(metadata))
+# metadata['dim'] = dim
+#
+# folder_path = 'data/'
+# file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
+# suffix = '_' + str(dim) + 'd_' + noise_type + '_nf_' + str(noise_fix) + '_' + exp_type
+#
+# open_file = open(folder_path + file_name + suffix + '.pkl', 'wb')
+# pickle.dump(data, open_file)
+# open_file.close()
+#
+# open_file = open(folder_path + file_name + suffix + '_metadata.pkl', 'wb')
+# pickle.dump(metadata, open_file)
+# open_file.close()
+#
+# with open(folder_path + file_name + suffix + '_metadata.txt', 'w') as data:
+#     data.write(str(metadata))
 
 plt.show()

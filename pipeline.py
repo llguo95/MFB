@@ -83,7 +83,8 @@ def pretrainer(
     ### Scaling ###
     test_x_list_scaled = None
     scaler_y_high = None
-    if model_type_el is ('cokg_dms' or 'nlcokg'):
+    scaler_y_low = None
+    if model_type_el in ['cokg_dms', 'nlcokg']:
         train_x_low_scaled = scale_to_unit(train_x_low, bds)
         train_x_high_scaled = scale_to_unit(train_x_high, bds)
 
@@ -101,7 +102,7 @@ def pretrainer(
         train_x = [train_x_low_scaled, train_x_high_scaled]
         train_obj = [train_y_low_scaled, train_y_high_scaled]
 
-    return train_x, train_y_high, train_obj, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high, exact_y, exact_y_low, train_y_low
+    return train_x, train_y_high, train_obj, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high, exact_y, exact_y_low, train_y_low, scaler_y_low,
 
 def trainer(
         train_x,
@@ -175,6 +176,7 @@ def posttrainer(
         test_x_list_scaled,
         test_x_list_high,
         scaler_y_high,
+        scaler_y_low,
 ):
     test_y_list_high_scaled = None
     test_y_list_low = None
@@ -183,6 +185,13 @@ def posttrainer(
         pred_mu, pred_sigma = model.predict(test_x_list_scaled)
         test_y_list_high = scaler_y_high.inverse_transform(pred_mu[1])
         test_y_var_list_high = scaler_y_high.inverse_transform(pred_sigma[1])
+        # test_y_list_high = scaler_y_high.inverse_transform(pred_mu)
+        # test_y_var_list_high = scaler_y_high.inverse_transform(pred_sigma)
+
+        # test_y_list_low = scaler_y_low.inverse_transform(pred_mu[0])
+        # test_y_var_list_low = scaler_y_low.inverse_transform(pred_sigma[0])
+
+        # test_y_list_high_scaled = pred_mu[1]
 
     elif model_type_el == 'nlcokg':
         test_x_aug = np.hstack((test_x_list_scaled, np.ones(test_x_list.shape)))
@@ -194,21 +203,28 @@ def posttrainer(
         test_y_list_high = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 1][:, None]
         test_y_var_list_high = model.posterior(torch.from_numpy(test_x_list)).variance.detach().numpy()[:, 1][:, None]
 
-        test_y_list_low = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 0][:, None]
-        test_y_var_list_low = model.posterior(torch.from_numpy(test_x_list)).variance.detach().numpy()[:, 0][:, None]
+        # test_y_list_low = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 0][:, None]
+        # test_y_var_list_low = model.posterior(torch.from_numpy(test_x_list)).variance.detach().numpy()[:, 0][:, None]
+        #
+        # test_y_list_high_scaled = \
+        #     model.outcome_transform(model.posterior(torch.from_numpy(test_x_list).to(**tkwargs)).mean)[0].detach().numpy()[:, 1]
 
     elif model_type_el == 'sogpr':
         test_y_list_high = model.posterior(torch.from_numpy(test_x_list).to(**tkwargs)).mean.cpu().detach().numpy()
         test_y_var_list_high = model.posterior(torch.from_numpy(test_x_list).to(**tkwargs)).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]
 
-        test_y_list_high_scaled = model.outcome_transform(model.posterior(torch.from_numpy(test_x_list).to(**tkwargs)).mean)[0].detach().numpy()
-
-        # print(model.outcome_transform(model.posterior(torch.from_numpy(test_x_list).to(**tkwargs)).mean))
+        # test_y_list_high_scaled = model.outcome_transform(model.posterior(torch.from_numpy(test_x_list).to(**tkwargs)).mean)[0].detach().numpy()
 
     else:
         test_y_list_high = model.posterior(torch.from_numpy(test_x_list_high).to(**tkwargs)).mean.cpu().detach().numpy()
         test_y_var_list_high = model.posterior(
             torch.from_numpy(test_x_list_high).to(**tkwargs)).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]
+
+        # test_y_list_high_scaled = \
+        #     model.outcome_transform(model.posterior(torch.from_numpy(test_x_list_high).to(**tkwargs)).mean)[0].detach().numpy()
+        #
+        # test_y_list_low = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 0][:, None]
+        # test_y_var_list_low = model.posterior(torch.from_numpy(test_x_list)).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]
 
     return test_y_list_high, test_y_var_list_high, test_y_list_high_scaled, test_y_list_low, test_y_var_list_low
 

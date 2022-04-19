@@ -61,7 +61,7 @@ lf = [0.5, 0.9]
 n_reg = [5 ** dim]
 n_reg_lf = [2 * 5 ** dim]
 scramble = False
-noise_fix = False
+noise_fix = 0
 budget = 5 ** (dim + 1)
 
 data_agg = []
