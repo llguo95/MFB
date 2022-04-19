@@ -371,6 +371,7 @@ def reg_main(
         problem=None, model_type=None, lf=None, n_reg=None, n_reg_lf=None, scramble=False, random=False,
         n_inf=500, noise_fix=True, lf_jitter=1e-4, noise_type='b',
 ):
+    total_training_time = 0
     if problem is None:
         problem = [
             MFProblem(
@@ -413,7 +414,7 @@ def reg_main(
     if not os.path.exists('reg_data'):
         os.mkdir('reg_data')
 
-    model_type_data = {}
+    # model_type_data = {}
     for model_type_el in model_type:
         # print()
         # print(model_type_el)
@@ -426,20 +427,20 @@ def reg_main(
             bds = problem_el.bounds
             dim = problem_el.objective_function.dim
 
-            lf_data = {}
+            # lf_data = {}
             for lf_el in lf:
                 # print()
                 # print('lf =', lf_el)
 
-                n_reg_data = {}
-                mean_stats_dict = {}
-                std_stats_dict = {}
+                # n_reg_data = {}
+                # mean_stats_dict = {}
+                # std_stats_dict = {}
                 for n_reg_el, n_reg_lf_el in zip(n_reg, n_reg_lf):
                     # print('n_reg =', n_reg_el)
                     # print('n_reg_lf_el =', n_reg_lf_el)
                     #
-                    n_DoE_mean_data = []
-                    n_DoE_std_data = []
+                    # n_DoE_mean_data = []
+                    # n_DoE_std_data = []
 
                     for _ in range(n_DoE):
                         ####################
@@ -455,7 +456,10 @@ def reg_main(
                         ### Training ###
                         ################
 
+                        start = time.time()
                         model = trainer(train_x, train_obj, problem_el, model_type_el, dim, noise_fix, lf_jitter, )
+                        stop = time.time()
+                        total_training_time += stop - start
 
                         ### NAME CONVENTION: dim, noise type, noise fix, objective name, LF parameter,
                         ### HF volume, LF volme, model type, iteration number, fidelity (cokg_dms only)
@@ -466,49 +470,46 @@ def reg_main(
                                            + ',' + str(lf_el) \
                                            + ',' + str(n_reg_el) + ',' + str(n_reg_lf_el) \
                                            # + ',' + model_type_el + ',' + str(_)
+                        print()
                         print(reg_problem_name + ',' + model_type_el + ',' + str(_))
+                        print('training time', stop - start)
 
                         if not os.path.exists('reg_data/' + reg_problem_name):
                             os.mkdir('reg_data/' + reg_problem_name)
 
-                        if model_type_el != 'cokg_dms':
-                            if not os.path.exists('reg_data/' + reg_problem_name + '/' + model_type_el):
-                                os.mkdir('reg_data/' + reg_problem_name + '/' + model_type_el)
+                        if not os.path.exists('reg_data/' + reg_problem_name + '/' + model_type_el):
+                            os.mkdir('reg_data/' + reg_problem_name + '/' + model_type_el)
 
+                        if model_type_el != 'cokg_dms':
                             ### SAVING MODEL ###
                             torch.save(model.state_dict(), 'reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_))
                             # np.save('reg_data/' + reg_problem_name, model.state_dict())
 
-                            ### LOADING MODEL ###
-                            start = time.time()
-                            state_dict = torch.load('reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_))
-                            # state_dict = np.load('reg_data/' + reg_problem_name + '.npy', allow_pickle=True)
-                            mll_load, model_load = problem_el.initialize_model(train_x, train_obj, model_type=model_type_el, noise_fix=noise_fix)
-                            model_load.load_state_dict(state_dict)
+                            # ### LOADING MODEL ###
+                            # state_dict = torch.load('reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_))
+                            # # state_dict = np.load('reg_data/' + reg_problem_name + '.npy', allow_pickle=True)
+                            # mll_load, model_load = problem_el.initialize_model(train_x, train_obj, model_type=model_type_el, noise_fix=noise_fix)
+                            # model_load.load_state_dict(state_dict)
 
                         else:
-                            if not os.path.exists('reg_data/' + reg_problem_name + '/' + model_type_el):
-                                os.mkdir('reg_data/' + reg_problem_name + '/' + model_type_el)
-
                             ### SAVING MODEL ###
                             for cokg_dms_fid in range(2):
                                 np.save('reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_) + ',' + str(cokg_dms_fid),
                                         model.models[cokg_dms_fid].param_array)
 
-                            ### LOADING MODEL ###
-                            start = time.time()
-                            base_k = GPy.kern.RBF
-                            kernels_RL = [base_k(dim - 1) + GPy.kern.White(dim - 1), base_k(dim - 1)]
-                            model_load = GPy.models.multiGPRegression(
-                                train_x,
-                                train_obj,
-                                kernel=kernels_RL,
-                            )
-                            for cokg_dms_fid in range(2):
-                                model_load.models[cokg_dms_fid].update_model(False)  # do not call the underlying expensive algebra on load
-                                model_load.models[cokg_dms_fid].initialize_parameter()  # Initialize the parameters (connect the parameters up)
-                                model_load.models[cokg_dms_fid][:] = np.load('reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_) + ',' + str(cokg_dms_fid) + '.npy', allow_pickle=True)  # Load the parameters
-                                model_load.models[cokg_dms_fid].update_model(True)  # Call the algebra only once
+                            # ### LOADING MODEL ###
+                            # base_k = GPy.kern.RBF
+                            # kernels_RL = [base_k(dim - 1) + GPy.kern.White(dim - 1), base_k(dim - 1)]
+                            # model_load = GPy.models.multiGPRegression(
+                            #     train_x,
+                            #     train_obj,
+                            #     kernel=kernels_RL,
+                            # )
+                            # for cokg_dms_fid in range(2):
+                            #     model_load.models[cokg_dms_fid].update_model(False)  # do not call the underlying expensive algebra on load
+                            #     model_load.models[cokg_dms_fid].initialize_parameter()  # Initialize the parameters (connect the parameters up)
+                            #     model_load.models[cokg_dms_fid][:] = np.load('reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_) + ',' + str(cokg_dms_fid) + '.npy', allow_pickle=True)  # Load the parameters
+                            #     model_load.models[cokg_dms_fid].update_model(True)  # Call the algebra only once
 
                         #################################
                         ### Post-training; prediction ###
@@ -516,7 +517,7 @@ def reg_main(
 
                         (test_y_list_high, test_y_var_list_high, test_y_list_high_scaled, test_y_list_low,
                          test_y_var_list_low,) = posttrainer(
-                            model_load, model_type_el, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high, scaler_y_low
+                            model, model_type_el, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high, scaler_y_low
                         )
 
                         ########################
@@ -554,11 +555,11 @@ def reg_main(
                         # RMSTD = np.mean(np.sqrt(np.abs(test_y_var_list_high))) / (max(exact_y) - min(exact_y))
 
                         print(rqmc(pred_diff, samp_diff)[1])
-                        n_DoE_mean_data.append(rqmc(pred_diff, samp_diff))
-                        n_DoE_std_data.append(rqmc(np.sqrt(np.abs(test_y_var_list_high)), samp_diff))
+                        # n_DoE_mean_data.append(rqmc(pred_diff, samp_diff))
+                        # n_DoE_std_data.append(rqmc(np.sqrt(np.abs(test_y_var_list_high)), samp_diff))
 
-                        vis2d = 0
-                        if vis2d:
+                        vis2d = 1
+                        if vis2d and model_type_el == 'mtask':
                             if dim - 1 == 2:
                                 coord_mesh, _ = uniform_grid(bl=bds[0], tr=bds[1], n=[22, 22], mesh=True)
                                 fig, ax = plt.subplots(subplot_kw={"projection": "3d"},
@@ -605,40 +606,40 @@ def reg_main(
                                 plt.grid()
                                 plt.tight_layout()
 
-                    mean_stats_dict['median'] = {
-                        'distances': np.median([d[0] for d in n_DoE_mean_data], axis=0),
-                        'metrics': np.median([d[1] for d in n_DoE_mean_data], axis=0),
-                    }
-
-                    mean_stats_dict['quantiles'] = {
-                        'distances': [np.quantile([d[0] for d in n_DoE_mean_data], q=.25, axis=0),
-                                      np.quantile([d[0] for d in n_DoE_mean_data], q=.75, axis=0)],
-                        'metrics': [np.quantile([d[1] for d in n_DoE_mean_data], q=.25, axis=0),
-                                    np.quantile([d[1] for d in n_DoE_mean_data], q=.75, axis=0)],
-                    }
-
-                    std_stats_dict['median'] = {
-                        'distances': np.median([d[0] for d in n_DoE_std_data], axis=0),
-                        'metrics': np.median([d[1] for d in n_DoE_std_data], axis=0),
-                    }
-
-                    std_stats_dict['quantiles'] = {
-                        'distances': [np.quantile([d[0] for d in n_DoE_std_data], q=.25, axis=0),
-                                      np.quantile([d[0] for d in n_DoE_std_data], q=.75, axis=0)],
-                        'metrics': [np.quantile([d[1] for d in n_DoE_std_data], q=.25, axis=0),
-                                    np.quantile([d[1] for d in n_DoE_std_data], q=.75, axis=0)],
-                    }
-
-                    n_reg_data[(n_reg_el, n_reg_lf_el)] = {
-                        'mean_stats': mean_stats_dict.copy(),
-                        'std_stats': std_stats_dict.copy(),
-                    }
-
-                lf_data[lf_el] = n_reg_data
-            problem_data[problem_el.objective_function.name] = lf_data
-        stop = time.time()
-        print('post-processing time', model_type_el, stop - start)
-        model_type_data[model_type_el] = problem_data
+        #             mean_stats_dict['median'] = {
+        #                 'distances': np.median([d[0] for d in n_DoE_mean_data], axis=0),
+        #                 'metrics': np.median([d[1] for d in n_DoE_mean_data], axis=0),
+        #             }
+        #
+        #             mean_stats_dict['quantiles'] = {
+        #                 'distances': [np.quantile([d[0] for d in n_DoE_mean_data], q=.25, axis=0),
+        #                               np.quantile([d[0] for d in n_DoE_mean_data], q=.75, axis=0)],
+        #                 'metrics': [np.quantile([d[1] for d in n_DoE_mean_data], q=.25, axis=0),
+        #                             np.quantile([d[1] for d in n_DoE_mean_data], q=.75, axis=0)],
+        #             }
+        #
+        #             std_stats_dict['median'] = {
+        #                 'distances': np.median([d[0] for d in n_DoE_std_data], axis=0),
+        #                 'metrics': np.median([d[1] for d in n_DoE_std_data], axis=0),
+        #             }
+        #
+        #             std_stats_dict['quantiles'] = {
+        #                 'distances': [np.quantile([d[0] for d in n_DoE_std_data], q=.25, axis=0),
+        #                               np.quantile([d[0] for d in n_DoE_std_data], q=.75, axis=0)],
+        #                 'metrics': [np.quantile([d[1] for d in n_DoE_std_data], q=.25, axis=0),
+        #                             np.quantile([d[1] for d in n_DoE_std_data], q=.75, axis=0)],
+        #             }
+        #
+        #             n_reg_data[(n_reg_el, n_reg_lf_el)] = {
+        #                 'mean_stats': mean_stats_dict.copy(),
+        #                 'std_stats': std_stats_dict.copy(),
+        #             }
+        #
+        #         lf_data[lf_el] = n_reg_data
+        #     problem_data[problem_el.objective_function.name] = lf_data
+        # model_type_data[model_type_el] = problem_data
+        print()
+        print('total training time', total_training_time)
     return # model_type_data, metadata_dict
 
 
