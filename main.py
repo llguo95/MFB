@@ -458,6 +458,11 @@ def reg_main(
 
                         start = time.time()
                         model = trainer(train_x, train_obj, problem_el, model_type_el, dim, noise_fix, lf_jitter, )
+                        # if model_type_el in ['sogpr', 'cokg', 'mtask']:
+                        #     print(model.state_dict())
+                        #     if model_type_el in ['mtask']:
+                        #         print(model.likelihood.noise_covar.raw_noise)
+
                         stop = time.time()
                         total_training_time += stop - start
 
@@ -483,13 +488,19 @@ def reg_main(
                         if model_type_el != 'cokg_dms':
                             ### SAVING MODEL ###
                             torch.save(model.state_dict(), 'reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_))
+                            print(train_x, train_obj)
                             # np.save('reg_data/' + reg_problem_name, model.state_dict())
 
-                            # ### LOADING MODEL ###
-                            # state_dict = torch.load('reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_))
-                            # # state_dict = np.load('reg_data/' + reg_problem_name + '.npy', allow_pickle=True)
-                            # mll_load, model_load = problem_el.initialize_model(train_x, train_obj, model_type=model_type_el, noise_fix=noise_fix)
-                            # model_load.load_state_dict(state_dict)
+                            ### LOADING MODEL ###
+                            state_dict = torch.load('reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_))
+                            print(model.likelihood.noise_covar)
+                            # print(state_dict)
+
+                            # state_dict = np.load('reg_data/' + reg_problem_name + '.npy', allow_pickle=True)
+                            # print(train_x)
+                            # mll_load, model_load = problem_el.initialize_model(train_x[:-2], train_obj[:-2], model_type=model_type_el, noise_fix=noise_fix)
+                            mll_load, model_load = problem_el.initialize_model(train_x, train_obj, model_type=model_type_el, noise_fix=noise_fix)
+                            model_load.load_state_dict(state_dict)
 
                         else:
                             ### SAVING MODEL ###
@@ -497,19 +508,19 @@ def reg_main(
                                 np.save('reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_) + ',' + str(cokg_dms_fid),
                                         model.models[cokg_dms_fid].param_array)
 
-                            # ### LOADING MODEL ###
-                            # base_k = GPy.kern.RBF
-                            # kernels_RL = [base_k(dim - 1) + GPy.kern.White(dim - 1), base_k(dim - 1)]
-                            # model_load = GPy.models.multiGPRegression(
-                            #     train_x,
-                            #     train_obj,
-                            #     kernel=kernels_RL,
-                            # )
-                            # for cokg_dms_fid in range(2):
-                            #     model_load.models[cokg_dms_fid].update_model(False)  # do not call the underlying expensive algebra on load
-                            #     model_load.models[cokg_dms_fid].initialize_parameter()  # Initialize the parameters (connect the parameters up)
-                            #     model_load.models[cokg_dms_fid][:] = np.load('reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_) + ',' + str(cokg_dms_fid) + '.npy', allow_pickle=True)  # Load the parameters
-                            #     model_load.models[cokg_dms_fid].update_model(True)  # Call the algebra only once
+                            ### LOADING MODEL ###
+                            base_k = GPy.kern.RBF
+                            kernels_RL = [base_k(dim - 1) + GPy.kern.White(dim - 1), base_k(dim - 1)]
+                            model_load = GPy.models.multiGPRegression(
+                                train_x,
+                                train_obj,
+                                kernel=kernels_RL,
+                            )
+                            for cokg_dms_fid in range(2):
+                                model_load.models[cokg_dms_fid].update_model(False)  # do not call the underlying expensive algebra on load
+                                model_load.models[cokg_dms_fid].initialize_parameter()  # Initialize the parameters (connect the parameters up)
+                                model_load.models[cokg_dms_fid][:] = np.load('reg_data/' + reg_problem_name + '/' + model_type_el + '/' + str(_) + ',' + str(cokg_dms_fid) + '.npy', allow_pickle=True)  # Load the parameters
+                                model_load.models[cokg_dms_fid].update_model(True)  # Call the algebra only once
 
                         #################################
                         ### Post-training; prediction ###
@@ -517,7 +528,7 @@ def reg_main(
 
                         (test_y_list_high, test_y_var_list_high, test_y_list_high_scaled, test_y_list_low,
                          test_y_var_list_low,) = posttrainer(
-                            model, model_type_el, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high, scaler_y_low
+                            model_load, model_type_el, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high, scaler_y_low
                         )
 
                         ########################
@@ -559,7 +570,8 @@ def reg_main(
                         # n_DoE_std_data.append(rqmc(np.sqrt(np.abs(test_y_var_list_high)), samp_diff))
 
                         vis2d = 1
-                        if vis2d and model_type_el == 'mtask':
+                        # if vis2d and model_type_el == 'mtask':
+                        if vis2d:
                             if dim - 1 == 2:
                                 coord_mesh, _ = uniform_grid(bl=bds[0], tr=bds[1], n=[22, 22], mesh=True)
                                 fig, ax = plt.subplots(subplot_kw={"projection": "3d"},
@@ -574,16 +586,17 @@ def reg_main(
                             elif dim - 1 == 1:
                                 plt.figure(num=problem_el.objective_function.name + '_' + model_type_el + str(_), figsize=(4, 4))
                                 coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
-                                plt.plot(coord_list, test_y_list_high, 'r--')
+                                plt.plot(coord_list, test_y_list_high, 'r--', label='Predictive HF mean')
                                 plt.fill_between(coord_list.flatten(),
                                                  (test_y_list_high - 2 * np.sqrt(
                                                      np.abs(test_y_var_list_high))).flatten(),
                                                  (test_y_list_high + 2 * np.sqrt(
                                                      np.abs(test_y_var_list_high))).flatten(),
-                                                 alpha=.25, color='r')
-                                plt.plot(coord_list, exact_y, 'r', linewidth=.5)
-                                if model_type_el != 'cokg_dms':
-                                    plt.scatter(train_x[:n_reg_el][:, 0], train_y_high, c='r', )
+                                                 alpha=.25, color='r', label='Predictive HF confidence interval')
+                                plt.plot(coord_list, exact_y, 'r', linewidth=.5, label='Exact HF objective')
+                                # if model_type_el != 'cokg_dms':
+                                #     plt.scatter(train_x[:n_reg_el][:, 0], train_y_high, c='r', )
+                                plt.legend()
 
                                 show_low = 0
                                 if model_type_el in ['cokg', 'cokg_dms', 'mtask'] and show_low:
@@ -596,8 +609,8 @@ def reg_main(
                                                          np.abs(test_y_var_list_low))).flatten(),
                                                      alpha=.25, color='b')
                                     plt.plot(coord_list, exact_y_low, 'b', linewidth=.5)
-                                    if model_type_el != 'cokg_dms':
-                                        plt.scatter(train_x[n_reg_el:][:, 0], train_y_low, c='b', )
+                                    # if model_type_el != 'cokg_dms':
+                                    #     plt.scatter(train_x[n_reg_el:][:, 0], train_y_low, c='b', )
 
                                 c = .1
                                 plt.ylim([(1 + c) * np.amin(exact_y) - c * np.amax(exact_y),

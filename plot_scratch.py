@@ -11,10 +11,11 @@ f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
 #     axs[a_id].set_title(f.name)
 
 f_list = [f.name for f in f_class_list]
-print(f_list)
 
 excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
 f_class_list = [f for f in f_class_list if f.name not in excluded_fs]
+print(list(enumerate([f.name for f in f_class_list])))
+
 dim = 2
 for f_no, fun in enumerate(f_class_list):
     f = fun(d=dim)

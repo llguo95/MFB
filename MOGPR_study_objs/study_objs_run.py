@@ -19,7 +19,7 @@ excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock'
 fs = [f for f in f_class_list if f.name not in excluded_fs]
 # print(len(fs))
 
-dim = 2
+dim = 1
 noise_type = 'b'
 
 problem = [
@@ -31,16 +31,16 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-][16:17]
+][6:7]
 
 print([(i, f.name) for (i, f) in enumerate(fs)])
 
 # model_type = ['sogpr', 'cokg', 'cokg_dms', 'mtask']
 model_type = ['sogpr']
-lf = [.1]
-n_reg = [25]
-n_reg_lf = [125]
-scramble = 1
+lf = [.5]
+n_reg = [5]
+n_reg_lf = [35]
+scramble = 0
 noise_fix = 0
 
 # model_type = ['mtask']
@@ -88,15 +88,15 @@ print('total time', stop - start)
 folder_path = 'data/'
 file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
 
-# open_file = open(folder_path + file_name + '.pkl', 'wb')
+# open_file = open(reg_data_path + file_name + '.pkl', 'wb')
 # pickle.dump(data, open_file)
 # open_file.close()
 #
-# open_file = open(folder_path + file_name + '_metadata.pkl', 'wb')
+# open_file = open(reg_data_path + file_name + '_metadata.pkl', 'wb')
 # pickle.dump(metadata, open_file)
 # open_file.close()
 #
-# with open(folder_path + file_name + '_metadata.txt', 'w') as data:
+# with open(reg_data_path + file_name + '_metadata.txt', 'w') as data:
 #     data.write(str(metadata))
 
 plt.show()

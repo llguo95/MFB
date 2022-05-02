@@ -80,7 +80,7 @@ def Comsol_Sim():
 #     open(a_Design_var8_txt_file, "w").write(str(x[7]))
 #     open(a_Design_var9_txt_file, "w").write(str(x[8]))
 #     os.system(cmdl_hf)
-#     os.chdir(folder_path)
+#     os.chdir(reg_data_path)
 #     return float(open(b_Objective_1_txt_file, "r").read().strip())
 #
 #
@@ -95,7 +95,7 @@ def Comsol_Sim():
 #     open(a_Design_var8_txt_file, "w").write(str(x[7]))
 #     open(a_Design_var9_txt_file, "w").write(str(x[8]))
 #     os.system(cmdl_lf)
-#     os.chdir(folder_path)
+#     os.chdir(reg_data_path)
 #     return float(open(b_Objective_1_txt_file, "r").read().strip())
 
 # def Comsol_Sim_high(x):

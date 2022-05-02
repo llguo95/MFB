@@ -150,10 +150,16 @@ def trainer(
     else:
         mll, model = problem_el.initialize_model(train_x, train_obj,
                                                  model_type=model_type_el, noise_fix=noise_fix)
+
+        # print('PRE LIKELIHOOD', model.likelihood)
         if noise_fix:
             model.likelihood = GaussianLikelihood(noise_constraint=gpytorch.constraints.Interval(1e-4, 2e-4))
             # cons = gpytorch.constraints.constraints.Interval(1e-4, 2e-4)
             # model.likelihood.noise_covar.register_constraint("raw_noise", cons)
+        else:
+            model.likelihood = GaussianLikelihood(noise_constraint=gpytorch.constraints.GreaterThan(1e-4))
+        print('POST LIKELIHOOD', model.likelihood)
+
         fit_gpytorch_model(mll)
     return model
 
@@ -188,8 +194,8 @@ def posttrainer(
         # test_y_list_high = scaler_y_high.inverse_transform(pred_mu)
         # test_y_var_list_high = scaler_y_high.inverse_transform(pred_sigma)
 
-        # test_y_list_low = scaler_y_low.inverse_transform(pred_mu[0])
-        # test_y_var_list_low = scaler_y_low.inverse_transform(pred_sigma[0])
+        test_y_list_low = scaler_y_low.inverse_transform(pred_mu[0])
+        test_y_var_list_low = scaler_y_low.inverse_transform(pred_sigma[0])
 
         # test_y_list_high_scaled = pred_mu[1]
 
@@ -203,8 +209,8 @@ def posttrainer(
         test_y_list_high = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 1][:, None]
         test_y_var_list_high = model.posterior(torch.from_numpy(test_x_list)).variance.detach().numpy()[:, 1][:, None]
 
-        # test_y_list_low = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 0][:, None]
-        # test_y_var_list_low = model.posterior(torch.from_numpy(test_x_list)).variance.detach().numpy()[:, 0][:, None]
+        test_y_list_low = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 0][:, None]
+        test_y_var_list_low = model.posterior(torch.from_numpy(test_x_list)).variance.detach().numpy()[:, 0][:, None]
         #
         # test_y_list_high_scaled = \
         #     model.outcome_transform(model.posterior(torch.from_numpy(test_x_list).to(**tkwargs)).mean)[0].detach().numpy()[:, 1]
@@ -223,8 +229,8 @@ def posttrainer(
         # test_y_list_high_scaled = \
         #     model.outcome_transform(model.posterior(torch.from_numpy(test_x_list_high).to(**tkwargs)).mean)[0].detach().numpy()
         #
-        # test_y_list_low = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 0][:, None]
-        # test_y_var_list_low = model.posterior(torch.from_numpy(test_x_list)).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]
+        test_y_list_low = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 0][:, None]
+        test_y_var_list_low = model.posterior(torch.from_numpy(test_x_list)).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]
 
     return test_y_list_high, test_y_var_list_high, test_y_list_high_scaled, test_y_list_low, test_y_var_list_low
 

@@ -95,6 +95,18 @@ files_dict = {
     }
 }
 
+model_names_dict = {
+    'cokg': 'cokg-j',
+    'cokg_dms': 'cokg-d',
+    'mtask': 'mtask',
+}
+
+noise_type_dict = {
+    'b': 'bias only',
+    'n': 'noise only',
+    'bn': 'bias and noise',
+}
+
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
 excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
 fs = [f for f in f_class_list if f.name not in excluded_fs]
@@ -109,8 +121,8 @@ metadata_mf = None
 processed_data_mf = {}
 processed_metadata = {}
 
-show_histograms = 0
-show_boxplots = 1
+show_histograms = 1
+show_boxplots = 0
 show_contours = 0
 show_sogpr_dim = 0
 
@@ -118,7 +130,7 @@ log_ratio_grids = {}
 RAAEs_sogpr_dim = []
 RAAEs_mogpr_dim = []
 for dim_i, dim in enumerate([1, 2, 3]):
-    if dim != 2: continue
+    # if dim != 2: continue
     files_dict_dim = files_dict[dim]
 
     # print(dim)
@@ -212,24 +224,57 @@ for dim_i, dim in enumerate([1, 2, 3]):
                 log_ratio_grids[(noise_type, model_type, lf, dim)] = np.median(log_ratio_noisetype_modeltype, axis=0)
 
                 # if show_histograms and dim == 1 and noise_type == 'b' and lf == 0.5 and model_type == 'cokg_dms':
-                if show_histograms and dim == 1:
+                if show_histograms and dim == 2 and noise_type != 'bn_exp':
                     prop, nonprop = [], []
-                    for stat_i, stat in enumerate(log_ratio_noisetype_modeltype[:, 3]):
-                        (nonprop, prop)[fs[stat_i].convex is True].append(stat)
-                    print(dim, model_type, lf, noise_type, np.median(log_ratio_noisetype_modeltype[:, 3]))
+                    k = 2
+                    for stat_i, stat in enumerate(log_ratio_noisetype_modeltype[:, k]):
+                        (nonprop, prop)[fs[stat_i].multimodal is False].append(stat)
+                    # print(dim, model_type, lf, noise_type, np.median(log_ratio_noisetype_modeltype[:, 3]))
                     # print('prop', prop, 'nonprop', nonprop)
 
-                    # plt.figure(num=str(dim) + '_' + noise_type + '_' + model_type + '_' + str(lf) + '_' + 'histogram')
-                    # # plt.hist(log_ratio_noisetype_modeltype[:, 2], bins=20, ec='k')
-                    # plt.hist((prop, nonprop), bins=20, ec='k', color=['g', 'r'], stacked=True)
-                    # plt.axvline(x=0, color='k', linestyle='--', linewidth=3)
-                    # plt.grid()
+                    if lf_i == 0 and model_no == 0:
+                        fig, axs = plt.subplots(nrows=3, ncols=3, num=str(dim) + '_' + noise_type + '_' + str((2 * k + 1) * 5 ** dim), figsize=(8, 8), sharex='all', sharey='all',)
+                        plt.suptitle(str(dim) + 'D, ' + noise_type_dict[noise_type] + ', ' + str((2 * k + 1) * 5 ** dim) + ' low fid. pts.')
 
-                if show_boxplots and noise_type == 'bn_exp' and dim == 2:
-                    plt.figure(num=str(dim) + '_' + noise_type + '_' + model_type + '_' + str(lf))
-                    plt.boxplot(log_ratio_noisetype_modeltype)
-                    plt.xticks(range(1, 16), [(4 * k + 1) * 5 ** dim for k in range(15)])
-                    plt.grid()
+                    ax = axs[model_no, lf_i]
+                    if model_no == 0:
+                        ax.set_title('LF = ' + str(lf))
+                    # plt.hist(log_ratio_noisetype_modeltype[:, 2], bins=20, ec='k')
+                    ax.hist((prop, nonprop), bins=10, ec='k', color=['g', 'r'], stacked=True)
+                    # print('prop', np.median(prop), 'nonprop', np.median(nonprop))
+                    ax.axvline(x=0, color='k', linewidth=2, label='improvement threshold')
+                    ax.axvline(x=np.median(prop), linestyle='--', color='darkgreen', linewidth=3, label='convex med. (' + str(np.round(np.median(prop), 2)) + ')')
+                    ax.axvline(x=np.median(nonprop), linestyle='--', color='darkred', linewidth=3, label='nonconvex med. (' + str(np.round(np.median(nonprop), 2)) + ')')
+                    if model_no == 2:
+                        ax.set_xlabel('Log relative improvement')
+                    if lf_i == 0:
+                        ax.set_ylabel('Frequency')
+                    if lf_i == 2:
+                        ax.yaxis.set_label_position("right")
+                        ax.set_ylabel(model_names_dict[model_type])
+                    # plt.grid()
+                    ax.legend(prop={'size': 9})
+                    plt.tight_layout()
+
+                if show_boxplots and noise_type != 'bn_exp':
+                    if lf_i == 0 and model_no == 0:
+                        fig, axs = plt.subplots(nrows=3, ncols=3, num=str(dim) + '_' + noise_type, figsize=(8, 8), sharey='all')
+                        plt.suptitle(str(dim) + 'D, ' + noise_type_dict[noise_type])
+                    ax = axs[model_no, lf_i]
+                    ax.axhline(y=0, color='k', linestyle='--', linewidth=2, alpha=.5)
+                    ax.boxplot(log_ratio_noisetype_modeltype)
+                    if model_no == 0:
+                        ax.set_title('LF = ' + str(lf))
+                    if model_no == 2:
+                        ax.set_xlabel('No. of LF data points')
+                    if lf_i == 0:
+                        ax.set_ylabel('Log relative improvement')
+                    if lf_i == 2:
+                        ax.yaxis.set_label_position("right")
+                        ax.set_ylabel(model_names_dict[model_type])
+                    ax.set_xticks(range(1, 6), [(2 * k + 1) * 5 ** dim for k in range(5)])
+                    ax.grid()
+                    plt.tight_layout()
 
 if show_sogpr_dim:
     plt.figure(num='sogpr')

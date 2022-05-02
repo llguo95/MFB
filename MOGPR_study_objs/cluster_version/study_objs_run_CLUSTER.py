@@ -38,8 +38,8 @@ fs = [f for f in f_class_list if f.name not in excluded_fs]
 print()
 print([(i, f.name) for (i, f) in enumerate(fs)])
 
-dim = 3
-noise_type = 'n'
+dim = 1
+noise_type = 'b'
 exp_type = 'm'
 
 print()
@@ -92,19 +92,19 @@ print('Run time:', stop - start)
 
 # metadata['dim'] = dim
 #
-# folder_path = 'data/'
+# reg_data_path = 'data/'
 # file_name = time.strftime("%Y%m%d%H%M%S", time.gmtime())
 # suffix = '_' + str(dim) + 'd_' + noise_type + '_nf_' + str(noise_fix) + '_' + exp_type
 #
-# open_file = open(folder_path + file_name + suffix + '.pkl', 'wb')
+# open_file = open(reg_data_path + file_name + suffix + '.pkl', 'wb')
 # pickle.dump(data, open_file)
 # open_file.close()
 #
-# open_file = open(folder_path + file_name + suffix + '_metadata.pkl', 'wb')
+# open_file = open(reg_data_path + file_name + suffix + '_metadata.pkl', 'wb')
 # pickle.dump(metadata, open_file)
 # open_file.close()
 #
-# with open(folder_path + file_name + suffix + '_metadata.txt', 'w') as data:
+# with open(reg_data_path + file_name + suffix + '_metadata.txt', 'w') as data:
 #     data.write(str(metadata))
 
 plt.show()
