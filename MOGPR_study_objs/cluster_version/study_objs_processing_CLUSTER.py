@@ -4,6 +4,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import torch
+
 import pybenchfunction
 
 from matplotlib import colors
@@ -64,13 +66,16 @@ for dim_i, dim in enumerate(dim_list):
                                           + str(n_reg_lf)
 
                     if os.path.exists(reg_data_path + problem_folder_name):
-                        print(problem_folder_name)
+                        # print(problem_folder_name)
                         for model_i, model_type in enumerate(model_list):
                             if os.path.exists(reg_data_path + problem_folder_name + '/' + model_type):
-                                print(model_type)
+                                # print(model_type)
                                 for exp_i in range(10):
-                                    if os.path.exists(reg_data_path + problem_folder_name + '/' + model_type + '/' + str(exp_i)):
-                                        print(exp_i)
+                                    if os.path.exists(reg_data_path + problem_folder_name + '/' + model_type + '/' + str(exp_i))\
+                                            and model_type != 'cokg_dms':
+                                        # print(reg_data_path + problem_folder_name + '/' + model_type + '/' + str(exp_i))
+                                        state_dict = torch.load(reg_data_path + problem_folder_name + '/' + model_type + '/' + str(exp_i))
+                                        print(state_dict)
 
 #                     problem_data[problem] = n_reg_data
 #

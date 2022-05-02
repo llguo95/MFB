@@ -5,6 +5,8 @@ import os
 
 import numpy as np
 import torch
+import gpytorch
+from gpytorch.likelihoods import GaussianLikelihood
 from torch import Tensor
 from torch.quasirandom import SobolEngine
 
@@ -189,6 +191,15 @@ class MFProblem:
             mll = [ExactMarginalLogLikelihood(m.likelihood, m) for m in model]
         else:
             mll = ExactMarginalLogLikelihood(model.likelihood, model)
+
+        # print('PRE LIKELIHOOD', model.likelihood)
+        if noise_fix:
+            model.likelihood = GaussianLikelihood(noise_constraint=gpytorch.constraints.Interval(1e-4, 2e-4))
+            # cons = gpytorch.constraints.constraints.Interval(1e-4, 2e-4)
+            # model.likelihood.noise_covar.register_constraint("raw_noise", cons)
+        else:
+            model.likelihood = GaussianLikelihood(noise_constraint=gpytorch.constraints.GreaterThan(1e-4))
+        # print('POST LIKELIHOOD', model.likelihood)
 
         ### Purgatory ###
         # elif model_type == 'nlcokg':
