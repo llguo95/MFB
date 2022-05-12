@@ -87,6 +87,7 @@ reg_main(
     scramble=scramble,
     noise_fix=noise_fix,
     noise_type=noise_type,
+    optimize=1 - post_processing,
 )
 stop = time.time()
 print()
