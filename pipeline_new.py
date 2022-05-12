@@ -37,9 +37,6 @@ def pretrainer(
         lf_el,
         random,
         scramble,
-        n_inf,
-        bds,
-        dim,
 ):
     problem_el.fidelities = torch.tensor([lf_el, 1.0], **tkwargs)
 
@@ -51,62 +48,7 @@ def pretrainer(
         model_type=model_type_el,
     )
 
-    train_x_low, train_x_high = [], []
-    train_y_low, train_y_high = [], []
-    for i in range(len(train_x)):
-        if train_x[i][-1] != 1.0:
-            train_x_low.append(train_x[i][:-1].cpu().numpy())
-            train_y_low.append(train_obj[i].cpu().numpy())
-        else:
-            train_x_high.append(train_x[i][:-1].cpu().numpy())
-            train_y_high.append(train_obj[i].cpu().numpy())
-    train_x_low, train_x_high = np.array(train_x_low), np.array(train_x_high)
-    train_y_low, train_y_high = np.array(train_y_low), np.array(train_y_high)
-
-    bds = bds.cpu()
-
-    test_x_axes = [np.linspace(bds[0, k], bds[1, k], int(n_inf ** (1 / (dim - 1)))) for k in range(dim - 1)]
-
-    test_x = np.meshgrid(*test_x_axes)
-
-    test_x_list = np.hstack([layer.reshape(-1, 1) for layer in test_x])
-
-    lf_vec = problem_el.fidelities[0].cpu() * np.ones((np.shape(test_x_list)[0], 1))
-    hf_vec = np.ones((np.shape(test_x_list)[0], 1))
-
-    test_x_list_low = np.concatenate((test_x_list, lf_vec), axis=1)
-    test_x_list_high = np.concatenate((test_x_list, hf_vec), axis=1)
-
-    exact_y = problem_el.objective_function(torch.Tensor(test_x_list_high)).cpu().detach().numpy()
-    exact_y_low = problem_el.objective_function(torch.Tensor(test_x_list_low)).cpu().detach().numpy()
-
-    ### Scaling ###
-    test_x_list_scaled = None
-    scaler_y_high = None
-    scaler_y_low = None
-    if model_type_el in ['cokg_dms', 'nlcokg']:
-        train_x_low_scaled = scale_to_unit(train_x_low, bds)
-        train_x_high_scaled = scale_to_unit(train_x_high, bds)
-
-        scaler_y_low = StandardScaler()
-        scaler_y_high = StandardScaler()
-
-        exact_y_low = problem_el.objective_function(torch.Tensor(test_x_list_low)).cpu().detach().numpy()
-        scaler_y_low.fit(exact_y_low[:, None])
-        scaler_y_high.fit(exact_y[:, None])
-
-        # scaler_y_low.fit(train_y_low)
-        # scaler_y_high.fit(train_y_high)
-
-        train_y_low_scaled = scaler_y_low.transform(train_y_low)
-        train_y_high_scaled = scaler_y_high.transform(train_y_high)
-
-        test_x_list_scaled = scale_to_unit(test_x_list, bds)
-
-        train_x = [train_x_low_scaled, train_x_high_scaled]
-        train_obj = [train_y_low_scaled, train_y_high_scaled]
-
-    return train_x, train_y_high, train_obj, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high, exact_y, exact_y_low, train_y_low, scaler_y_low,
+    return train_x, train_obj,
 
 def trainer(
         train_x,
@@ -114,11 +56,31 @@ def trainer(
         problem_el,
         model_type_el,
         dim,
+        bds,
         noise_fix,
         lf_jitter,
+        n_reg_el,
         optimize=True,
 ):
+    scaler_y_high = None
     if model_type_el == 'cokg_dms':
+        train_x_low, train_x_high = train_x[:n_reg_el, :-1], train_x[n_reg_el:, :-1]
+        train_y_low, train_y_high = train_obj[:n_reg_el], train_obj[n_reg_el:]
+
+        train_x_low_scaled = scale_to_unit(train_x_low, bds)
+        train_x_high_scaled = scale_to_unit(train_x_high, bds)
+
+        scaler_y_low = StandardScaler()
+        scaler_y_high = StandardScaler()
+
+        scaler_y_low.fit(train_y_low)
+        scaler_y_high.fit(train_y_high)
+        train_y_low_scaled = scaler_y_low.transform(train_y_low)
+        train_y_high_scaled = scaler_y_high.transform(train_y_high)
+
+        train_x = [train_x_low_scaled, train_x_high_scaled]
+        train_obj = [train_y_low_scaled, train_y_high_scaled]
+
         base_k = GPy.kern.RBF
         kernels_RL = [base_k(dim - 1) + GPy.kern.White(dim - 1), base_k(dim - 1)]
         model = GPy.models.multiGPRegression(
@@ -170,7 +132,7 @@ def trainer(
         # # print('POST LIKELIHOOD', model.likelihood)
         if optimize:
             fit_gpytorch_model(mll)
-    return model
+    return model, scaler_y_high
 
 from scipy.stats import norm
 
@@ -187,16 +149,31 @@ def ei(mean_x, var_x, f_inc):
 def posttrainer(
         model,
         model_type_el,
-        test_x_list,
-        test_x_list_scaled,
-        test_x_list_high,
+        problem_el,
+        bds,
+        dim,
+        n_inf,
         scaler_y_high,
-        scaler_y_low,
 ):
-    test_y_list_high_scaled = None
-    test_y_list_low = None
-    test_y_var_list_low = None
+
+    bds = bds.cpu()
+    test_x_axes = [np.linspace(bds[0, k], bds[1, k], int(n_inf ** (1 / (dim - 1)))) for k in range(dim - 1)]
+    test_x = np.meshgrid(*test_x_axes)
+    test_x_list = np.hstack([layer.reshape(-1, 1) for layer in test_x])
+
+    # lf_vec = problem_el.fidelities[0].cpu() * np.ones((np.shape(test_x_list)[0], 1))
+    hf_vec = np.ones((np.shape(test_x_list)[0], 1))
+
+    # test_x_list_low = np.concatenate((test_x_list, lf_vec), axis=1)
+    test_x_list_high = np.concatenate((test_x_list, hf_vec), axis=1)
+
+    exact_y = problem_el.objective_function(torch.Tensor(test_x_list_high)).cpu().detach().numpy()
+    # exact_y_low = problem_el.objective_function(torch.Tensor(test_x_list_low)).cpu().detach().numpy()
+
     if model_type_el == 'cokg_dms':
+
+        test_x_list_scaled = scale_to_unit(test_x_list, bds)
+
         pred_mu, pred_sigma = model.predict(test_x_list_scaled)
         test_y_list_high = scaler_y_high.inverse_transform(pred_mu[1])
         test_y_var_list_high = scaler_y_high.inverse_transform(pred_sigma[1])
@@ -208,11 +185,11 @@ def posttrainer(
 
         # test_y_list_high_scaled = pred_mu[1]
 
-    elif model_type_el == 'nlcokg':
-        test_x_aug = np.hstack((test_x_list_scaled, np.ones(test_x_list.shape)))
-        pred_mu, pred_sigma = model.predict(test_x_aug)
-        test_y_list_high = scaler_y_high.inverse_transform(pred_mu)
-        test_y_var_list_high = scaler_y_high.inverse_transform(pred_sigma)
+    # elif model_type_el == 'nlcokg':
+    #     test_x_aug = np.hstack((test_x_list_scaled, np.ones(test_x_list.shape)))
+    #     pred_mu, pred_sigma = model.predict(test_x_aug)
+    #     test_y_list_high = scaler_y_high.inverse_transform(pred_mu)
+    #     test_y_var_list_high = scaler_y_high.inverse_transform(pred_sigma)
 
     elif model_type_el == 'mtask':
         test_y_list_high = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 1][:, None]
@@ -241,105 +218,4 @@ def posttrainer(
         # test_y_list_low = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 0][:, None]
         # test_y_var_list_low = model.posterior(torch.from_numpy(test_x_list)).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]
 
-    return test_y_list_high, test_y_var_list_high, test_y_list_high_scaled, test_y_list_low, test_y_var_list_low
-
-
-def acq_visualizer(_, test_x_list, test_y_list_high, test_y_var_list_high, exact_y, acq_ei_norm, acq_ucb_norm):
-    if _ == 0:
-        fig, axs = plt.subplots(nrows=3, ncols=1, sharex='all')
-
-    axs[0].plot(test_x_list, test_y_list_high, 'k--', alpha=.25)
-    axs[0].fill_between(test_x_list.flatten(),
-                        (test_y_list_high - 2 * np.sqrt(
-                            np.abs(test_y_var_list_high))).flatten(),
-                        (test_y_list_high + 2 * np.sqrt(
-                            np.abs(test_y_var_list_high))).flatten(),
-                        color='k', alpha=.05)
-
-    axs[0].plot(test_x_list, exact_y, 'k', linewidth=.5)
-    axs[0].scatter(
-        test_x_list[np.argmin(exact_y)], np.amin(exact_y), marker='o', c='r',
-        zorder=np.iinfo(np.int32).max
-    )
-    axs[0].set_title('Objective')
-
-    c = (np.amax(exact_y) - np.amin(exact_y)) / 5
-    axs[0].set_ylim([np.amin(exact_y) - c, np.amax(exact_y) + c])
-
-    axs[1].scatter(
-        test_x_list, acq_ei_norm, marker='s', facecolors='none', edgecolors='k',
-        s=10, alpha=.2
-    )
-
-    axs[1].set_title('EI')
-
-    axs[1].scatter(
-        test_x_list[np.argmax(acq_ei_norm)], np.amax(acq_ei_norm), marker='s',
-        facecolors='none', edgecolors='r',
-        s=30, zorder=np.iinfo(np.int32).max
-    )
-
-    axs[2].scatter(
-        test_x_list, acq_ucb_norm, marker='d', facecolors='none', edgecolors='k',
-        s=10, alpha=.2
-    )
-
-    axs[2].scatter(
-        test_x_list[np.argmax(acq_ucb_norm)], np.amax(acq_ucb_norm), marker='d',
-        facecolors='none', edgecolors='r',
-        s=30, zorder=np.iinfo(np.int32).max
-    )
-
-    axs[2].set_title('UCB')
-
-    plt.tight_layout()
-
-def reg_main_visualizer(_, test_x_list, test_y_list_high, test_y_var_list_high, exact_y, acq_ei_norm, acq_ucb_norm):
-    if _ == 0:
-        fig, axs = plt.subplots(nrows=3, ncols=1, sharex='all')
-
-    axs[0].plot(test_x_list, test_y_list_high, 'k--', alpha=.25)
-    axs[0].fill_between(test_x_list.flatten(),
-                        (test_y_list_high - 2 * np.sqrt(
-                            np.abs(test_y_var_list_high))).flatten(),
-                        (test_y_list_high + 2 * np.sqrt(
-                            np.abs(test_y_var_list_high))).flatten(),
-                        color='k', alpha=.05)
-
-    axs[0].plot(test_x_list, exact_y, 'k', linewidth=.5)
-    axs[0].scatter(
-        test_x_list[np.argmin(exact_y)], np.amin(exact_y), marker='o', c='r',
-        zorder=np.iinfo(np.int32).max
-    )
-    axs[0].set_title('Objective')
-
-    c = (np.amax(exact_y) - np.amin(exact_y)) / 5
-    axs[0].set_ylim([np.amin(exact_y) - c, np.amax(exact_y) + c])
-
-    axs[1].scatter(
-        test_x_list, acq_ei_norm, marker='s', facecolors='none', edgecolors='k',
-        s=10, alpha=.2
-    )
-
-    axs[1].set_title('EI')
-
-    axs[1].scatter(
-        test_x_list[np.argmax(acq_ei_norm)], np.amax(acq_ei_norm), marker='s',
-        facecolors='none', edgecolors='r',
-        s=30, zorder=np.iinfo(np.int32).max
-    )
-
-    axs[2].scatter(
-        test_x_list, acq_ucb_norm, marker='d', facecolors='none', edgecolors='k',
-        s=10, alpha=.2
-    )
-
-    axs[2].scatter(
-        test_x_list[np.argmax(acq_ucb_norm)], np.amax(acq_ucb_norm), marker='d',
-        facecolors='none', edgecolors='r',
-        s=30, zorder=np.iinfo(np.int32).max
-    )
-
-    axs[2].set_title('UCB')
-
-    plt.tight_layout()
+    return test_y_list_high, test_y_var_list_high, exact_y,

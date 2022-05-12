@@ -1,10 +1,12 @@
 import pickle
 
+import gpytorch
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+from gpytorch.likelihoods import GaussianLikelihood
 
 import pybenchfunction
 
@@ -12,7 +14,18 @@ from matplotlib import colors
 
 import os
 
-reg_data_path = '../reg_data/'
+from botorch.models.gp_regression import SingleTaskGP
+from botorch.models.multitask import MultiTaskGP
+
+from botorch.models.transforms.outcome import Standardize
+from botorch.models.transforms.input import Normalize
+
+from MFproblem import MFProblem
+from cokgj import CoKrigingGP
+from objective_formatter import AugmentedTestFunction, botorch_TestFunction
+from pipeline import trainer, posttrainer
+
+reg_data_path = 'reg_data/'
 
 model_names_dict = {
     'cokg': 'cokg-j',
@@ -26,11 +39,17 @@ noise_type_dict = {
     'bn': 'bias and noise',
 }
 
+tkwargs = {
+    "dtype": torch.double,
+    # "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+    "device": torch.device("cpu"),
+}
+
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
 excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
 fs = [f for f in f_class_list if f.name not in excluded_fs]
 
-problem_list = [('Augmented' + f.name).replace(" ", "") for f in fs]
+# problem_list = [('Augmented' + f.name).replace(" ", "") for f in fs]
 dim_list = [1, 2, 3]
 noise_list = ['b', 'n', 'bn']
 model_list = ['sogpr', 'cokg', 'cokg_dms', 'mtask']
@@ -52,30 +71,82 @@ log_ratio_grids = {}
 RAAEs_sogpr_dim = []
 RAAEs_mogpr_dim = []
 
-for dim_i, dim in enumerate(dim_list):
-    for noise_type_i, noise_type in enumerate(noise_list):
-        for problem_no, problem in enumerate(problem_list):
-            for lf_i, lf in enumerate(lf_list):
-                for n_reg, n_reg_lf in zip([5 ** dim] * len(n_reg_lf_list(dim)), n_reg_lf_list(dim)):
-                    problem_folder_name = str(dim) + ',' \
-                                          + noise_type + ',' \
-                                          + '0,' \
-                                          + problem + ',' \
-                                          + str(lf) + ',' \
-                                          + str(n_reg) + ',' \
-                                          + str(n_reg_lf)
+def process():
+    for dim_i, dim in enumerate(dim_list):
 
-                    if os.path.exists(reg_data_path + problem_folder_name):
-                        # print(problem_folder_name)
-                        for model_i, model_type in enumerate(model_list):
-                            if os.path.exists(reg_data_path + problem_folder_name + '/' + model_type):
-                                # print(model_type)
-                                for exp_i in range(10):
-                                    if os.path.exists(reg_data_path + problem_folder_name + '/' + model_type + '/' + str(exp_i))\
-                                            and model_type != 'cokg_dms':
-                                        # print(reg_data_path + problem_folder_name + '/' + model_type + '/' + str(exp_i))
-                                        state_dict = torch.load(reg_data_path + problem_folder_name + '/' + model_type + '/' + str(exp_i))
-                                        print(state_dict)
+        for noise_type_i, noise_type in enumerate(noise_list):
+
+            problem_list = [
+                MFProblem(
+                    objective_function=AugmentedTestFunction(
+                        botorch_TestFunction(
+                            f(d=dim), negate=False,  # Minimization
+                        ), noise_type=noise_type,
+                    ).to(**tkwargs)
+                )
+                for f in fs
+            ]
+
+            for problem_no, problem in enumerate(problem_list):
+
+                for lf_i, lf in enumerate(lf_list):
+
+                    for n_reg, n_reg_lf in zip([5 ** dim] * len(n_reg_lf_list(dim)), n_reg_lf_list(dim)):
+
+                        problem_folder_name = str(dim) + ',' \
+                                              + noise_type + ',' \
+                                              + '0,' \
+                                              + problem.objective_function.name + ',' \
+                                              + str(lf) + ',' \
+                                              + str(n_reg) + ',' \
+                                              + str(n_reg_lf)
+
+                        problem_path = reg_data_path + problem_folder_name
+
+                        if os.path.exists(problem_path):
+
+                            for model_i, model_type in enumerate(model_list):
+
+                                model_path = problem_path + '/' + model_type
+
+                                if os.path.exists(model_path):
+
+                                    for exp_i in range(10):
+
+                                        exp_path = model_path + '/' + str(exp_i)
+                                        print(exp_path)
+
+                                        if os.path.exists(exp_path) and model_type != 'cokg_dms':
+
+                                            state_dict = torch.load(exp_path)
+
+                                            if os.path.exists(exp_path + '_train_x'):
+
+                                                train_x = torch.load(exp_path + '_train_x')
+                                                train_y = torch.load(exp_path + '_train_y')
+
+                                                model = trainer(train_x, train_y, problem, model_type, dim,
+                                                                0, 1e-4, optimize=False)
+
+                                                # print('PRE LIKELIHOOD', model.state_dict())
+                                                # if noise_fix:
+                                                #     model.likelihood = GaussianLikelihood(
+                                                #         noise_constraint=gpytorch.constraints.Interval(1e-4, 2e-4))
+                                                #     # cons = gpytorch.constraints.constraints.Interval(1e-4, 2e-4)
+                                                #     # model.likelihood.noise_covar.register_constraint("raw_noise", cons)
+                                                # else:
+                                                model.likelihood = GaussianLikelihood(
+                                                    noise_constraint=gpytorch.constraints.GreaterThan(1e-4))
+                                                # print('POST LIKELIHOOD', model.state_dict())
+
+                                                # (test_y_list_high, test_y_var_list_high, test_y_list_high_scaled, test_y_list_low,
+                                                #  test_y_var_list_low,) = posttrainer(
+                                                #     model, model_type, test_x_list, test_x_list_scaled, test_x_list_high, scaler_y_high, scaler_y_low
+                                                # )
+
+                                                if exp_i == 0: return
+
+process()
 
 #                     problem_data[problem] = n_reg_data
 #

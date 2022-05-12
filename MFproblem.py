@@ -10,7 +10,7 @@ from gpytorch.likelihoods import GaussianLikelihood
 from torch import Tensor
 from torch.quasirandom import SobolEngine
 
-from botorch.models.gp_regression import SingleTaskGP
+
 from gpytorch.kernels.scale_kernel import ScaleKernel
 from gpytorch.kernels.rbf_kernel import RBFKernel
 from gpytorch.mlls.exact_marginal_log_likelihood import ExactMarginalLogLikelihood
@@ -24,13 +24,16 @@ from botorch.acquisition.analytic import ExpectedImprovement, UpperConfidenceBou
 from botorch.models.cost import AffineFidelityCostModel
 from botorch.models.transforms.outcome import Standardize
 from botorch.models.transforms.input import Normalize
+
+from botorch.models.gp_regression import SingleTaskGP
+from botorch.models.multitask import MultiTaskGP
+from cokgj import CoKrigingGP
+
+from botorch.models.gp_regression_fidelity import SingleTaskMultiFidelityGP
 from botorch.optim.optimize import optimize_acqf
 from botorch.optim.optimize import optimize_acqf_mixed
 
-from botorch.models.multitask import MultiTaskGP
-from botorch.models.gp_regression_fidelity import SingleTaskMultiFidelityGP
 
-from cokgj import CoKrigingGP
 
 #########################################
 #### Problem & associated parameters ####
@@ -88,9 +91,6 @@ class MFProblem:
     ##########################
 
     def generate_initial_data(self, n=16, n_lf=32, random=True, lf_mult=None, scramble=False, model_type='sogpr'):
-        nl_exp = False
-        nested_doe = True
-
         bds = self.objective_function._bounds
 
         if lf_mult is None:
@@ -122,12 +122,14 @@ class MFProblem:
             for i in range(len(x)):
                 x[i] = (bds[i][1] - bds[i][0]) * x[i] + bds[i][0]  # input scaling
 
+        nested_doe = True
         if nested_doe:
             train_x = torch.cat((train_x[:n], train_x[:n_tot - n]))
 
         train_x_full = torch.cat((train_x, train_f), dim=1)
         train_obj = self.objective_function(train_x_full).unsqueeze(-1)  # add output dimension
 
+        nl_exp = False
         if nl_exp:
             np.random.seed(42)
             X1 = np.linspace(0, 1, 50)[:, None]

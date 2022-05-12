@@ -19,7 +19,7 @@ excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock'
 fs = [f for f in f_class_list if f.name not in excluded_fs]
 # print(len(fs))
 
-dim = 2
+dim = 1
 noise_type = 'b'
 
 problem = [
@@ -35,11 +35,11 @@ problem = [
 
 print([(i, f.name) for (i, f) in enumerate(fs)])
 
-model_type = ['sogpr', 'cokg', 'cokg_dms', 'mtask']
-# model_type = ['cokg_dms']
+# model_type = ['sogpr', 'cokg', 'cokg_dms', 'mtask']
+model_type = ['cokg_dms']
 lf = [.5]
-n_reg = [25]
-n_reg_lf = [250]
+n_reg = [5]
+n_reg_lf = [10]
 scramble = 1
 noise_fix = 0
 
