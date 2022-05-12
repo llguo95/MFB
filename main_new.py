@@ -316,13 +316,13 @@ def reg_main(
                     if not optimize:
                         if not os.path.exists('reg_data/pp_data/'): os.mkdir('reg_data/pp_data/')
 
-                        print()
-                        print(model_path + '.xlsx')
+                        # print()
+                        print('reg_data/pp_data/' + reg_problem_name + ',' + model_type_el + '.csv')
                         df = pd.DataFrame(
                             metrics,
                             columns=['L1E', 'L2E', 'L1E/L1D', 'L1E/L2D', 'L2E/L1D', 'L2E/L2D'],
                         )
-                        print(df)
+                        # print(df)
                         df.to_csv('reg_data/pp_data/' + reg_problem_name + ',' + model_type_el + '.csv')
         if optimize:
             print()

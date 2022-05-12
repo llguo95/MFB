@@ -38,7 +38,7 @@ print([(i, f.name) for (i, f) in enumerate(fs)])
 model_type = ['cokg', 'cokg_dms', 'mtask']
 lf = [.5]
 n_reg = [5]
-n_reg_lf = [5]
+n_reg_lf = [50]
 scramble = 1
 noise_fix = 0
 
