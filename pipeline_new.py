@@ -67,8 +67,8 @@ def trainer(
         train_x_low, train_x_high = train_x[:n_reg_el, :-1], train_x[n_reg_el:, :-1]
         train_y_low, train_y_high = train_obj[:n_reg_el], train_obj[n_reg_el:]
 
-        train_x_low_scaled = scale_to_unit(train_x_low, bds)
-        train_x_high_scaled = scale_to_unit(train_x_high, bds)
+        train_x_low_scaled = scale_to_unit(torch.tensor(train_x_low, **tkwargs), bds)
+        train_x_high_scaled = scale_to_unit(torch.tensor(train_x_high, **tkwargs), bds)
 
         scaler_y_low = StandardScaler()
         scaler_y_high = StandardScaler()
