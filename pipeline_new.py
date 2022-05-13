@@ -64,8 +64,8 @@ def trainer(
 ):
     scaler_y_high = None
     if model_type_el == 'cokg_dms':
-        train_x_low, train_x_high = train_x[:n_reg_el, :-1], train_x[n_reg_el:, :-1]
-        train_y_low, train_y_high = train_obj[:n_reg_el], train_obj[n_reg_el:]
+        train_x_low, train_x_high = np.array(train_x[:n_reg_el, :-1], float), np.array(train_x[n_reg_el:, :-1], float)
+        train_y_low, train_y_high = np.array(train_obj[:n_reg_el], float), np.array(train_obj[n_reg_el:], float)
 
         train_x_low_scaled = scale_to_unit(torch.tensor(train_x_low, **tkwargs), bds)
         train_x_high_scaled = scale_to_unit(torch.tensor(train_x_high, **tkwargs), bds)
