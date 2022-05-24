@@ -192,6 +192,7 @@ def posttrainer(
     #     test_y_var_list_high = scaler_y_high.inverse_transform(pred_sigma)
 
     elif model_type_el == 'mtask':
+        print(model.posterior)
         test_y_list_high = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 1][:, None]
         test_y_var_list_high = model.posterior(torch.from_numpy(test_x_list)).variance.detach().numpy()[:, 1][:, None]
 
@@ -208,6 +209,7 @@ def posttrainer(
         # test_y_list_high_scaled = model.outcome_transform(model.posterior(torch.from_numpy(test_x_list).to(**tkwargs)).mean)[0].detach().numpy()
 
     else:
+        # print(model.posterior)
         test_y_list_high = model.posterior(torch.from_numpy(test_x_list_high).to(**tkwargs)).mean.cpu().detach().numpy()
         test_y_var_list_high = model.posterior(
             torch.from_numpy(test_x_list_high).to(**tkwargs)).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]

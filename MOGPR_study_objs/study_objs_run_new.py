@@ -31,15 +31,15 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-][1:2]
+][2:3]
 
 print([(i, f.name) for (i, f) in enumerate(fs)])
 
-model_type = ['cokg', 'cokg_dms', 'mtask']
+model_type = ['sogpr']
 lf = [.5]
-n_reg = [5]
-n_reg_lf = [50]
-scramble = 1
+n_reg = [5, 10, 15, 20]
+n_reg_lf = [1, 1, 1, 1]
+scramble = 0
 noise_fix = 0
 
 start = time.time()

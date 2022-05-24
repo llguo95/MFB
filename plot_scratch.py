@@ -16,7 +16,7 @@ excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock'
 f_class_list = [f for f in f_class_list if f.name not in excluded_fs]
 print(list(enumerate([f.name for f in f_class_list])))
 
-dim = 2
+dim = 1
 for f_no, fun in enumerate(f_class_list):
     f = fun(d=dim)
     fmin = f.get_global_minimum(d=dim)

@@ -33,8 +33,6 @@ from botorch.models.gp_regression_fidelity import SingleTaskMultiFidelityGP
 from botorch.optim.optimize import optimize_acqf
 from botorch.optim.optimize import optimize_acqf_mixed
 
-
-
 #########################################
 #### Problem & associated parameters ####
 #########################################
@@ -45,10 +43,10 @@ tkwargs = {
     "device": torch.device("cpu"),
 }
 # SMOKE_TEST = os.environ.get("SMOKE_TEST")
-SMOKE_TEST = True  # os.environ.get("SMOKE_TEST")
+SMOKE_TEST = 0 # os.environ.get("SMOKE_TEST")
 
 NUM_RESTARTS = 10 if not SMOKE_TEST else 2
-RAW_SAMPLES = 512 if not SMOKE_TEST else 4
+RAW_SAMPLES = 64 if not SMOKE_TEST else 4
 
 
 class MFProblem:
@@ -108,8 +106,8 @@ class MFProblem:
             train_f = self.fidelities[torch.bernoulli(p).long()]
         else:
             soboleng = SobolEngine(dimension=self.objective_function.dim - 1, scramble=scramble)
-            # if not scramble:
-            #     soboleng.fast_forward(123)
+            if not scramble:
+                soboleng.fast_forward(1234)
             train_x = soboleng.draw(n_tot).to(**tkwargs)
 
             indices = torch.zeros((n_tot, 1))
@@ -258,22 +256,35 @@ class MFProblem:
         candidate_set_full = torch.cat((candidate_set, train_f), dim=1)
 
         if model._get_name() != 'SingleTaskGP':
-            acq = qMultiFidelityMaxValueEntropy(
-                model=model,
-                candidate_set=candidate_set_full,
-                num_fantasies=128 if not SMOKE_TEST else 2,
-                cost_aware_utility=self.cost_aware_utility(),
-            )
-        else:
-            acq = qMaxValueEntropy(
-                model=model,
-                candidate_set=candidate_set,
-                num_fantasies=128 if not SMOKE_TEST else 2,
-            )
-            # acq = UpperConfidenceBound(
+            # acq = qMultiFidelityMaxValueEntropy(
             #     model=model,
-            #     beta=2,
+            #     candidate_set=candidate_set_full,
+            #     num_fantasies=128 if not SMOKE_TEST else 2,
+            #     cost_aware_utility=self.cost_aware_utility(),
+            #     maximize=False,
             # )
+            acq = UpperConfidenceBound(
+                model=model,
+                beta=4,
+                maximize=False
+            )
+            # acq = ExpectedImprovement(
+            #     model=model,
+            #     best_f=500,
+            #     maximize=False,
+            # )
+        else:
+            # acq = qMaxValueEntropy(
+            #     model=model,
+            #     candidate_set=candidate_set,
+            #     num_fantasies=128 if not SMOKE_TEST else 2,
+            #     maximize=False
+            # )
+            acq = UpperConfidenceBound(
+                model=model,
+                beta=4,
+                maximize=False
+            )
 
         return acq
 

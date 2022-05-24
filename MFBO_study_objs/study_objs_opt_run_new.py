@@ -1,19 +1,3 @@
-import sys
-
-custom_lib_rel_path = '../'
-
-sys.path.insert(0, custom_lib_rel_path + 'Python_Benchmark_Test_Optimization_Function_Single_Objective')
-import pybenchfunction
-
-sys.path.insert(0, custom_lib_rel_path + 'gpytorch')
-import gpytorch
-
-sys.path.insert(0, custom_lib_rel_path + 'GPy')
-import GPy
-
-sys.path.insert(0, custom_lib_rel_path + 'MFB')
-# from main import reg_main, bo_main
-
 import time
 import pickle
 import torch
@@ -57,7 +41,7 @@ problem = [
         cost_ratio=cost_ratio
     )
     for f in fs
-]
+][2:3]
 
 model_type = ['sogpr']
 lf = [0.9]

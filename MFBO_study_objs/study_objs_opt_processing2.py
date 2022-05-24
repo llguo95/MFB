@@ -107,8 +107,9 @@ for f_i, file_name in enumerate(file_names):
                             # plt.plot(opt_cost_hist_high, y_hist_high_min[-len(opt_cost_hist_high):], color=colors[model_type])
                             plt.plot(torch.cat((torch.tensor([0]), opt_cost_hist_high)),
                                      torch.cat((torch.tensor([y_hist_high_min[-len(opt_cost_hist_high)]]),
-                                                y_hist_high_min[-len(opt_cost_hist_high):])), color=colors[model_type])
+                                                y_hist_high_min[-len(opt_cost_hist_high):])), color=colors[model_type], label=model_type)
                             plt.scatter(opt_cost_hist_high, y_hist_opt_high[:, 1], c=colors[model_type])
+                            plt.legend()
 
     # for reg_f in [1e-9]:
     #     cokg_rel = np.log10(np.maximum(sogpr_bests - y_opts, reg_f) / np.maximum(cokg_bests - y_opts, reg_f))
