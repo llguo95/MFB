@@ -63,15 +63,16 @@ model_type = ['sogpr']
 lf = [0.9]
 n_reg = [5 ** dim]
 n_reg_lf = [2 * 5 ** dim]
-scramble = 0
+scramble = 1
 noise_fix = 0
 budget = 3 * 5 ** dim
+post_processing = False
 
 trial = 0
 start = time.time()
 while trial < 1:
     bo_main(problem=problem, model_type=model_type, lf=lf, n_reg_init=n_reg, scramble=scramble, noise_fix=noise_fix,
-            n_reg_lf_init=n_reg_lf, max_budget=budget)
+            n_reg_lf_init=n_reg_lf, max_budget=budget, post_processing=post_processing)
     trial += 1
 stop = time.time()
 print('Total run time', stop - start)

@@ -36,6 +36,7 @@ tkwargs = {
     "device": torch.device("cpu"),
 }
 
+
 def ei(mean_x, var_x, f_inc):
     mean_x = -mean_x  # minimization
     Delta = mean_x - f_inc
@@ -63,6 +64,7 @@ def uniform_grid(bl, tr, n, mesh=False):
         res = coord_list
     return res
 
+
 def scale_to_unit(x, bds):
     res = np.zeros(x.shape)
     el_c = 0
@@ -72,18 +74,19 @@ def scale_to_unit(x, bds):
         el_c += 1
     return res
 
-def rqmc(pred_diff, samp_diff): # regression quality metric calculator
+
+def rqmc(pred_diff, samp_diff):  # regression quality metric calculator
     L1E = np.abs(pred_diff).sum()  # L1 distance / prediction error
     L2E = np.sqrt((pred_diff ** 2).sum())  # L2 distance / prediction error
 
     L1D = np.abs(samp_diff).sum()  # L1 sample deviation (AAD / MAD)
     L2D = np.sqrt((samp_diff ** 2).sum())  # L2 sample deviation (standard deviation)
 
-    L1E_div_L1D = L1E / L1D # "unexplained deviation" UD
-    L2E_div_L2D = L2E / L2D # unexplained variance, (1 - R2) ** .5, FVU, UV
+    L1E_div_L1D = L1E / L1D  # "unexplained deviation" UD
+    L2E_div_L2D = L2E / L2D  # unexplained variance, (1 - R2) ** .5, FVU, UV
 
-    L1E_div_L2D = L1E / (np.sqrt(len(pred_diff)) * L2D) # RMAE (RAAE)
-    L2E_div_L1D = (np.sqrt(len(pred_diff)) * L2E) / L1D # RRMSE
+    L1E_div_L2D = L1E / (np.sqrt(len(pred_diff)) * L2D)  # RMAE (RAAE)
+    L2E_div_L1D = (np.sqrt(len(pred_diff)) * L2E) / L1D  # RRMSE
 
     metric_matrix = L1E, L2E, L1E_div_L1D, L1E_div_L2D, L2E_div_L1D, L2E_div_L2D
 
@@ -185,7 +188,8 @@ def reg_main(
                         start = time.time()
 
                         model, scaler_y_high = trainer(
-                            train_x, train_obj, problem_el, model_type_el, dim, bds, noise_fix, lf_jitter, n_reg_el, optimize,
+                            train_x, train_obj, problem_el, model_type_el, dim, bds, noise_fix, lf_jitter, n_reg_el,
+                            optimize,
                         )
 
                         stop = time.time()
@@ -236,15 +240,18 @@ def reg_main(
                             else:
                                 ### LOADING MODEL ###
                                 for cokg_dms_fid in range(2):
-                                    model.models[cokg_dms_fid].update_model(False)  # do not call the underlying expensive algebra on load
-                                    model.models[cokg_dms_fid].initialize_parameter()  # Initialize the parameters (connect the parameters up)
-                                    model.models[cokg_dms_fid][:] = np.load(exp_path + ',' + str(cokg_dms_fid) + '.npy', allow_pickle=True)  # Load the parameters
+                                    model.models[cokg_dms_fid].update_model(
+                                        False)  # do not call the underlying expensive algebra on load
+                                    model.models[
+                                        cokg_dms_fid].initialize_parameter()  # Initialize the parameters (connect the parameters up)
+                                    model.models[cokg_dms_fid][:] = np.load(exp_path + ',' + str(cokg_dms_fid) + '.npy',
+                                                                            allow_pickle=True)  # Load the parameters
                                     model.models[cokg_dms_fid].update_model(True)  # Call the algebra only once
 
                             #################################
                             ### Post-training; prediction ###
                             #################################
-    
+
                             test_y_list_high, test_y_var_list_high, exact_y = posttrainer(
                                 model, model_type_el, problem_el, bds, dim, n_inf, scaler_y_high
                             )
@@ -282,9 +289,11 @@ def reg_main(
                                     #            s=50)
 
                                 elif dim - 1 == 1:
-                                    plt.figure(num=problem_el.objective_function.name + 'DoE_no' + model_type_el, figsize=(4, 4))
+                                    plt.figure(num=problem_el.objective_function.name + 'DoE_no' + model_type_el,
+                                               figsize=(4, 4))
                                     coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
-                                    plt.plot(coord_list, test_y_list_high, 'r--', label='Predictive HF mean', alpha=.2,)
+                                    plt.plot(coord_list, test_y_list_high, 'r--', label='Predictive HF mean',
+                                             alpha=.2, )
                                     plt.fill_between(coord_list.flatten(),
                                                      (test_y_list_high - 2 * np.sqrt(
                                                          np.abs(test_y_var_list_high))).flatten(),
@@ -333,9 +342,10 @@ def reg_main(
             print('total training time', total_training_time)
     return
 
-def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=True,
-            n_inf=500, random=False, noise_fix=True, noise_type='b', n_reg_lf_init=None, max_budget=None, ):
 
+def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=True,
+            n_inf=500, random=False, noise_fix=True, noise_type='b', n_reg_lf_init=None, max_budget=None,
+            post_processing=False):
     if problem is None:
         problem = [
             MFProblem(
@@ -364,151 +374,43 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
     else:
         n_DoE = 1
 
+    opt_medians_model_types = []
+
     for model_type_el in model_type:
-        # print()
-        # print(model_type_el)
+
+        opt_medians = []
 
         for problem_el in problem:
-            # print()
             # print(problem_el.objective_function.name)
-
-            # vis_opt = 0
-            # if vis_opt:
-            #     plt.figure(num=problem_el.objective_function.name)
-            pm_one = 2 * (.5 - problem_el.objective_function.negate)
 
             bds = problem_el.bounds
             dim = problem_el.objective_function.dim
 
             for lf_el in lf:
-                # print()
-                # print('lf =', lf_el)
 
-                n_reg_init_data = {}
                 for n_reg_init_el, n_reg_lf_init_el in zip(n_reg_init, n_reg_lf_init):
 
-                    for DoE_no in range(n_DoE):
-                        print(DoE_no)
+                    if not post_processing:
 
-                        problem_el.fidelities = torch.tensor([lf_el, 1.0], **tkwargs)
+                        for DoE_no in range(n_DoE):
+                            print(DoE_no)
+                            problem_el.fidelities = torch.tensor([lf_el, 1.0], **tkwargs)
 
-                        train_x, train_obj = pretrainer(
-                            problem_el,
-                            model_type_el,
-                            n_reg_init_el,
-                            n_reg_lf_init_el,
-                            lf_el,
-                            random,
-                            scramble,
-                        )
-                        if model_type_el != 'sogpr':
-                            init_costs = n_reg_init_el * [1] + n_reg_lf_init_el * [1 / problem_el.cost_ratio]
-                        else:
-                            init_costs = n_reg_init_el * [1]
-
-                        iteration = 0
-
-                        mll, model = problem_el.initialize_model(train_x, train_obj, model_type=model_type_el)
-                        if noise_fix:
-                            cons = Interval(1e-4, 1e-4 + 1e-10)
-                            model.likelihood.noise_covar.register_constraint("raw_noise", cons)
-                        fit_gpytorch_model(mll)
-
-                        test_y_list_high, test_y_var_list_high, exact_y = posttrainer(
-                            model,
-                            model_type_el,
-                            problem_el,
-                            bds,
-                            dim,
-                            n_inf,
-                            scaler_y_high=None,
-                        )
-
-                        L1E, L2E, L1E_div_L1D, L1E_div_L2D, L2E_div_L1D, L2E_div_L2D = rqmc(
-                            exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y)
-                        )
-
-                        # print(2 * L1E_div_L1D * np.sqrt(np.abs(test_y_var_list_high)).sum() / L1E)
-                        # print(L1E_div_L2D * np.sqrt(np.abs(test_y_var_list_high).sum()) / L2E)
-
-                        # plt.figure(num='histo')
-                        # plt.hist(exact_y.flatten() - test_y_list_high.flatten(), ec='k', bins=40)
-
-                        # print(test_y_var_list_high)
-
-                        vis_opt = 0
-                        if vis_opt and dim - 1 == 1:
-                            plt.figure(num=problem_el.objective_function.name + '_init_' + str(DoE_no))
-                            coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
-                            coord_list_tensor = torch.tensor(coord_list)
-                            plt.plot(coord_list, test_y_list_high, 'r--', label='Predictive HF mean', )
-                            plt.fill_between(coord_list.flatten(),
-                                             (test_y_list_high - 2 * np.sqrt(
-                                                 np.abs(test_y_var_list_high))).flatten(),
-                                             (test_y_list_high + 2 * np.sqrt(
-                                                 np.abs(test_y_var_list_high))).flatten(),
-                                             alpha=.25, color='r', label='Predictive HF confidence interval')
-                            plt.plot(coord_list, exact_y, 'r', linewidth=.5, label='Exact HF objective')
-                            train_x_high = torch.stack([x[:-1] for x in train_x if x[-1] == 1])
-                            train_obj_high = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] == 1])
-                            plt.scatter(train_x_high, train_obj_high, c='r')
-
+                            train_x, train_obj = pretrainer(
+                                problem_el,
+                                model_type_el,
+                                n_reg_init_el,
+                                n_reg_lf_init_el,
+                                lf_el,
+                                random,
+                                scramble,
+                            )
                             if model_type_el != 'sogpr':
-                                train_x_low = torch.stack([x[:-1] for x in train_x if x[-1] != 1])
-                                train_obj_low = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] != 1])
-                                plt.scatter(train_x_low, train_obj_low, c='g')
-
-                            c = .1
-                            plt.ylim([(1 + c) * np.amin(exact_y) - c * np.amax(exact_y),
-                                      (1 + c) * np.amax(exact_y) - c * np.amin(exact_y)])
-                            plt.tight_layout()
-
-                        opt_cost_history = list(np.cumsum(init_costs))
-                        rqmc_history = [rqmc(exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y))]
-                        # cir_history = [2 * L1E_div_L1D * np.sqrt(np.abs(test_y_var_list_high)).sum() / L1E]
-                        cir_history = [2 * np.amax(np.sqrt(np.abs(test_y_var_list_high)))]
-                        cumulative_cost = 0 # opt_cost_history[-1]
-                        _, y_min = problem_el.objective_function.opt(d=dim - 1)
-
-                        if problem_el.objective_function.name == 'AugmentedQing':
-                            y_min = y_min[0]
-
-                        train_x_high = torch.stack([x[:-1] for x in train_x if x[-1] == 1])
-                        train_obj_high = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] == 1])
-
-                        if model_type_el != 'sogpr':
-                            train_x_low = torch.stack([x[:-1] for x in train_x if x[-1] != 1])
-                            train_obj_low = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] != 1])
-
-                        # y_min_pred = torch.amin(train_obj_high)
-
-                        while cumulative_cost < max_budget:# and costs_since_improvement < 20:
-                            if iteration % 5 == 0: print('iteration', iteration, ',', float(100 * cumulative_cost / max_budget), '% of max. budget')
-
-                            mfacq = problem_el.get_mfacq(model)
-                            new_x, new_obj, cost = problem_el.optimize_mfacq_and_get_observation(mfacq)
-                            cost = 1 if cost is None else cost
-                            cumulative_cost += float(cost)
-
-                            if model_type_el != 'sogpr':
-                                train_x = torch.cat([train_x, new_x])
-                                train_obj = torch.cat([train_obj, new_obj])
-                                # cumulative_cost += float(cost)
-
+                                init_costs = n_reg_init_el * [1] + n_reg_lf_init_el * [1 / problem_el.cost_ratio]
                             else:
-                                new_x = torch.cat([new_x, torch.tensor([1])])[:, None].T
-                                train_x = torch.cat([train_x, new_x])
-                                train_obj = torch.cat([train_obj, new_obj])
-                                # cumulative_cost += 1
+                                init_costs = n_reg_init_el * [1]
 
-                            opt_cost_history.append(cumulative_cost)
-
-                            train_x_high = torch.stack([x[:-1] for x in train_x if x[-1] == 1])
-                            train_obj_high = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] == 1])
-
-                            if model_type_el != 'sogpr':
-                                train_x_low = torch.stack([x[:-1] for x in train_x if x[-1] != 1])
-                                train_obj_low = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] != 1])
+                            iteration = 0
 
                             mll, model = problem_el.initialize_model(train_x, train_obj, model_type=model_type_el)
                             if noise_fix:
@@ -530,23 +432,20 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                                 exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y)
                             )
 
-                            # print()
                             # print(2 * L1E_div_L1D * np.sqrt(np.abs(test_y_var_list_high)).sum() / L1E)
                             # print(L1E_div_L2D * np.sqrt(np.abs(test_y_var_list_high).sum()) / L2E)
 
-                            # cir_history.append(2 * L1E_div_L1D * np.sqrt(np.abs(test_y_var_list_high)).sum() / L1E)
-                            cir_history.append(2 * np.amax(np.sqrt(np.abs(test_y_var_list_high))))
+                            # plt.figure(num='histo')
+                            # plt.hist(exact_y.flatten() - test_y_list_high.flatten(), ec='k', bins=40)
 
-                            rqmc_history.append(
-                                rqmc(exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y))
-                            )
+                            # print(test_y_var_list_high)
 
-                            # y_min_pred_candidate = torch.amin(train_obj_high)
-
-                            if vis_opt and dim - 1 == 1:# and y_min_pred_candidate < y_min_pred:
-                                plt.figure(num=problem_el.objective_function.name + '_' + str(iteration))
+                            vis_opt = 0
+                            if vis_opt and dim - 1 == 1:
+                                plt.figure(num=problem_el.objective_function.name + '_init_' + str(DoE_no))
                                 coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
-                                plt.plot(coord_list, test_y_list_high, 'r--', label='Predictive HF mean')
+                                coord_list_tensor = torch.tensor(coord_list)
+                                plt.plot(coord_list, test_y_list_high, 'r--', label='Predictive HF mean', )
                                 plt.fill_between(coord_list.flatten(),
                                                  (test_y_list_high - 2 * np.sqrt(
                                                      np.abs(test_y_var_list_high))).flatten(),
@@ -555,85 +454,269 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                                                  alpha=.25, color='r', label='Predictive HF confidence interval')
                                 plt.plot(coord_list, exact_y, 'r', linewidth=.5, label='Exact HF objective')
                                 train_x_high = torch.stack([x[:-1] for x in train_x if x[-1] == 1])
-                                train_obj_high = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] == 1])
+                                train_obj_high = torch.stack(
+                                    [y for i, y in enumerate(train_obj) if train_x[i, -1] == 1])
                                 plt.scatter(train_x_high, train_obj_high, c='r')
 
                                 if model_type_el != 'sogpr':
                                     train_x_low = torch.stack([x[:-1] for x in train_x if x[-1] != 1])
-                                    train_obj_low = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] != 1])
+                                    train_obj_low = torch.stack(
+                                        [y for i, y in enumerate(train_obj) if train_x[i, -1] != 1])
                                     plt.scatter(train_x_low, train_obj_low, c='g')
 
-                                col = 'r' if train_x[-1, -1] == 1 else 'g'
-                                plt.scatter(train_x[-1, 0], train_obj[-1], c=col, alpha=.5, s=150)
                                 c = .1
                                 plt.ylim([(1 + c) * np.amin(exact_y) - c * np.amax(exact_y),
                                           (1 + c) * np.amax(exact_y) - c * np.amin(exact_y)])
                                 plt.tight_layout()
 
-                                # plt.figure(num='acq' + str(iteration))
-                                # if model_type_el == 'sogpr':
-                                #     mfacq_eval = torch.stack([mfacq.forward(x[:, None]) for x in coord_list_tensor])
-                                # else:
-                                #     mfacq_eval = torch.stack([mfacq.forward(
-                                #         torch.cat((x, torch.tensor([1])))[None, :]
-                                #     ) for x in coord_list_tensor])
-                                # plt.plot(coord_list, mfacq_eval.detach().numpy())
+                            opt_cost_history = list(np.cumsum(init_costs))
+                            rqmc_history = [
+                                rqmc(exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y))]
+                            # cir_history = [2 * L1E_div_L1D * np.sqrt(np.abs(test_y_var_list_high)).sum() / L1E]
+                            cir_history = [2 * np.amax(np.sqrt(np.abs(test_y_var_list_high)))]
+                            cumulative_cost = 0  # opt_cost_history[-1]
+                            _, y_min = problem_el.objective_function.opt(d=dim - 1)
 
-                            iteration += 1
+                            if problem_el.objective_function.name == 'AugmentedQing':
+                                y_min = y_min[0]
 
-                        x_names = ['x_' + str(i) for i in range(dim - 1)] + ['fid']
+                            train_x_high = torch.stack([x[:-1] for x in train_x if x[-1] == 1])
+                            train_obj_high = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] == 1])
 
-                        df = pd.DataFrame(columns=['cost', 'y - y_min'] + x_names,
-                                          data=np.hstack((np.array(opt_cost_history)[:, None],
-                                                          train_obj.numpy() - y_min,
-                                                          train_x.numpy(),)))
-                        df2 = pd.DataFrame(
-                            index=list(range(n_reg_init_el + (model_type_el != 'sogpr') * n_reg_lf_init_el - 1, len(df))),
-                            columns=['L1E', 'L2E', 'L1E/L1D', 'L1E/L2D', 'L2E/L1D', 'L2E/L2D'],
-                            data=np.array(rqmc_history)
-                        )
+                            if model_type_el != 'sogpr':
+                                train_x_low = torch.stack([x[:-1] for x in train_x if x[-1] != 1])
+                                train_obj_low = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] != 1])
 
-                        df3 = pd.DataFrame(
-                            index=list(
-                                range(n_reg_init_el + (model_type_el != 'sogpr') * n_reg_lf_init_el - 1, len(df))),
-                            columns=['cir'],
-                            data=np.array(cir_history)
-                        )
+                            # y_min_pred = torch.amin(train_obj_high)
 
-                        df_res = pd.concat([df, df2, df3], axis=1)
-                        # print(df_res)
+                            while cumulative_cost < max_budget:  # and costs_since_improvement < 20:
+                                if iteration % 5 == 0: print('iteration', iteration, ',',
+                                                             float(100 * cumulative_cost / max_budget),
+                                                             '% of max. budget')
 
-                        if not os.path.exists('opt_data'):
-                            os.mkdir('opt_data')
+                                mfacq = problem_el.get_mfacq(model)
+                                new_x, new_obj, cost = problem_el.optimize_mfacq_and_get_observation(mfacq)
+                                cost = 1 if cost is None else cost
+                                cumulative_cost += float(cost)
 
-                        ### NAME CONVENTION: dim, noise type, noise fix, LF parameter,
-                        ### HF volume, LF volume
-                        opt_problem_name = str(dim - 1) + '_d' \
-                                           + ',' + noise_type + '_nt' \
-                                           + ',' + str(noise_fix) + '_nf' \
-                                           + ',' + str(lf_el) + '_lf' \
-                                           + ',' + str(n_reg_init_el) + '_nh,' + str(n_reg_lf_init_el) + '_nl' \
-                                           + ',' + str(max_budget) + '_b' \
-                                           + ',' + str(problem_el.cost_ratio) + '_cr'
+                                if model_type_el != 'sogpr':
+                                    train_x = torch.cat([train_x, new_x])
+                                    train_obj = torch.cat([train_obj, new_obj])
+                                    # cumulative_cost += float(cost)
 
-                        opt_problem_path = 'opt_data/' + opt_problem_name
+                                else:
+                                    new_x = torch.cat([new_x, torch.tensor([1])])[:, None].T
+                                    train_x = torch.cat([train_x, new_x])
+                                    train_obj = torch.cat([train_obj, new_obj])
+                                    # cumulative_cost += 1
 
-                        if not os.path.exists(opt_problem_path):
-                            os.mkdir(opt_problem_path)
+                                opt_cost_history.append(cumulative_cost)
 
-                        objective_path = opt_problem_path + '/' + problem_el.objective_function.name
+                                train_x_high = torch.stack([x[:-1] for x in train_x if x[-1] == 1])
+                                train_obj_high = torch.stack(
+                                    [y for i, y in enumerate(train_obj) if train_x[i, -1] == 1])
 
-                        if not os.path.exists(objective_path):
-                            os.mkdir(objective_path)
+                                if model_type_el != 'sogpr':
+                                    train_x_low = torch.stack([x[:-1] for x in train_x if x[-1] != 1])
+                                    train_obj_low = torch.stack(
+                                        [y for i, y in enumerate(train_obj) if train_x[i, -1] != 1])
 
-                        model_problem_path = objective_path + '/' + model_type_el
+                                mll, model = problem_el.initialize_model(train_x, train_obj, model_type=model_type_el)
+                                if noise_fix:
+                                    cons = Interval(1e-4, 1e-4 + 1e-10)
+                                    model.likelihood.noise_covar.register_constraint("raw_noise", cons)
+                                fit_gpytorch_model(mll)
 
-                        if not os.path.exists(model_problem_path):
-                            os.mkdir(model_problem_path)
+                                test_y_list_high, test_y_var_list_high, exact_y = posttrainer(
+                                    model,
+                                    model_type_el,
+                                    problem_el,
+                                    bds,
+                                    dim,
+                                    n_inf,
+                                    scaler_y_high=None,
+                                )
 
-                        DoE_no_path = model_problem_path + '/' + str(DoE_no) + '.csv'
-                        print(DoE_no_path)
+                                L1E, L2E, L1E_div_L1D, L1E_div_L2D, L2E_div_L1D, L2E_div_L2D = rqmc(
+                                    exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y)
+                                )
 
-                        df_res.to_csv(DoE_no_path)
+                                # print()
+                                # print(2 * L1E_div_L1D * np.sqrt(np.abs(test_y_var_list_high)).sum() / L1E)
+                                # print(L1E_div_L2D * np.sqrt(np.abs(test_y_var_list_high).sum()) / L2E)
+
+                                # cir_history.append(2 * L1E_div_L1D * np.sqrt(np.abs(test_y_var_list_high)).sum() / L1E)
+                                cir_history.append(2 * np.amax(np.sqrt(np.abs(test_y_var_list_high))))
+
+                                rqmc_history.append(
+                                    rqmc(exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y))
+                                )
+
+                                # y_min_pred_candidate = torch.amin(train_obj_high)
+
+                                if vis_opt and dim - 1 == 1:  # and y_min_pred_candidate < y_min_pred:
+                                    plt.figure(num=problem_el.objective_function.name + '_' + str(iteration))
+                                    coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
+                                    plt.plot(coord_list, test_y_list_high, 'r--', label='Predictive HF mean')
+                                    plt.fill_between(coord_list.flatten(),
+                                                     (test_y_list_high - 2 * np.sqrt(
+                                                         np.abs(test_y_var_list_high))).flatten(),
+                                                     (test_y_list_high + 2 * np.sqrt(
+                                                         np.abs(test_y_var_list_high))).flatten(),
+                                                     alpha=.25, color='r', label='Predictive HF confidence interval')
+                                    plt.plot(coord_list, exact_y, 'r', linewidth=.5, label='Exact HF objective')
+                                    train_x_high = torch.stack([x[:-1] for x in train_x if x[-1] == 1])
+                                    train_obj_high = torch.stack(
+                                        [y for i, y in enumerate(train_obj) if train_x[i, -1] == 1])
+                                    plt.scatter(train_x_high, train_obj_high, c='r')
+
+                                    if model_type_el != 'sogpr':
+                                        train_x_low = torch.stack([x[:-1] for x in train_x if x[-1] != 1])
+                                        train_obj_low = torch.stack(
+                                            [y for i, y in enumerate(train_obj) if train_x[i, -1] != 1])
+                                        plt.scatter(train_x_low, train_obj_low, c='g')
+
+                                    col = 'r' if train_x[-1, -1] == 1 else 'g'
+                                    plt.scatter(train_x[-1, 0], train_obj[-1], c=col, alpha=.5, s=150)
+                                    c = .1
+                                    plt.ylim([(1 + c) * np.amin(exact_y) - c * np.amax(exact_y),
+                                              (1 + c) * np.amax(exact_y) - c * np.amin(exact_y)])
+                                    plt.tight_layout()
+
+                                    # plt.figure(num='acq' + str(iteration))
+                                    # if model_type_el == 'sogpr':
+                                    #     mfacq_eval = torch.stack([mfacq.forward(x[:, None]) for x in coord_list_tensor])
+                                    # else:
+                                    #     mfacq_eval = torch.stack([mfacq.forward(
+                                    #         torch.cat((x, torch.tensor([1])))[None, :]
+                                    #     ) for x in coord_list_tensor])
+                                    # plt.plot(coord_list, mfacq_eval.detach().numpy())
+
+                                iteration += 1
+
+                            x_names = ['x_' + str(i) for i in range(dim - 1)] + ['fid']
+
+                            df = pd.DataFrame(columns=['cost', 'y - y_min'] + x_names,
+                                              data=np.hstack((np.array(opt_cost_history)[:, None],
+                                                              train_obj.numpy() - y_min,
+                                                              train_x.numpy(),)))
+                            df2 = pd.DataFrame(
+                                index=list(
+                                    range(n_reg_init_el + (model_type_el != 'sogpr') * n_reg_lf_init_el - 1, len(df))),
+                                columns=['L1E', 'L2E', 'L1E/L1D', 'L1E/L2D', 'L2E/L1D', 'L2E/L2D'],
+                                data=np.array(rqmc_history)
+                            )
+
+                            df3 = pd.DataFrame(
+                                index=list(
+                                    range(n_reg_init_el + (model_type_el != 'sogpr') * n_reg_lf_init_el - 1, len(df))),
+                                columns=['cir'],
+                                data=np.array(cir_history)
+                            )
+
+                            df_res = pd.concat([df, df2, df3], axis=1)
+                            # print(df_res)
+
+                            if not os.path.exists('opt_data'):
+                                os.mkdir('opt_data')
+
+                            ### NAME CONVENTION: dim, noise type, noise fix, LF parameter,
+                            ### HF volume, LF volume
+                            opt_problem_name = str(dim - 1) + '_d' \
+                                               + ',' + noise_type + '_nt' \
+                                               + ',' + str(noise_fix) + '_nf' \
+                                               + ',' + str(lf_el) + '_lf' \
+                                               + ',' + str(n_reg_init_el) + '_nh,' + str(n_reg_lf_init_el) + '_nl' \
+                                               + ',' + str(max_budget) + '_b' \
+                                               + ',' + str(problem_el.cost_ratio) + '_cr'
+
+                            opt_problem_path = 'opt_data/' + opt_problem_name
+
+                            if not os.path.exists(opt_problem_path):
+                                os.mkdir(opt_problem_path)
+
+                            objective_path = opt_problem_path + '/' + problem_el.objective_function.name
+
+                            if not os.path.exists(objective_path):
+                                os.mkdir(objective_path)
+
+                            model_problem_path = objective_path + '/' + model_type_el
+
+                            if not os.path.exists(model_problem_path):
+                                os.mkdir(model_problem_path)
+
+                            DoE_no_path = model_problem_path + '/' + str(DoE_no) + '.csv'
+                            print(DoE_no_path)
+
+                            df_res.to_csv(DoE_no_path)
+
+                    else:
+
+                        hist_high_opt_mins = []
+
+                        for DoE_no in range(n_DoE):
+                            # print(DoE_no)
+                            ### NAME CONVENTION: dim, noise type, noise fix, LF parameter,
+                            ### HF volume, LF volume
+
+                            if model_type_el == 'stmf':
+                                lf_el = 0.9
+                                problem_el.cost_ratio = 25
+
+                            opt_problem_name = str(dim - 1) + '_d' \
+                                               + ',' + noise_type + '_nt' \
+                                               + ',' + str(noise_fix) + '_nf' \
+                                               + ',' + str(lf_el) + '_lf' \
+                                               + ',' + str(n_reg_init_el) + '_nh,' + str(n_reg_lf_init_el) + '_nl' \
+                                               + ',' + str(max_budget) + '_b' \
+                                               + ',' + str(problem_el.cost_ratio) + '_cr'
+
+                            opt_problem_path = 'opt_data/' + opt_problem_name
+
+                            objective_path = opt_problem_path + '/' + problem_el.objective_function.name
+
+                            model_problem_path = objective_path + '/' + model_type_el
+
+                            DoE_no_path = model_problem_path + '/' + str(DoE_no) + '.csv'
+
+                            df = pd.read_csv(DoE_no_path)
+                            # print(df)
+                            cost, hist = df['cost'], df['y - y_min']
+                            high_opt_indices = [i for i, fid in enumerate(df['fid']) if fid == 1 and i >= n_reg_init_el]
+
+                            cost_high_opt, hist_high_opt = \
+                                np.array([cost[i] for i in high_opt_indices]), np.array(
+                                    [hist[i] for i in high_opt_indices])
+
+                            # print(np.minimum.accumulate(hist_high_opt))
+                            if len(hist_high_opt) > 0:
+                                hist_high_opt_mins.append(np.minimum.accumulate(hist_high_opt)[-1])
+
+                            vis_opt_process = 1
+                            # if vis_opt_process:
+                            # plt.figure(num=problem_el.objective_function.name)
+                            #
+                            # if model_type_el == 'sogpr':
+                            #     c = 'b'
+                            # else:
+                            #     c = 'g'
+                            #
+                            # plt.plot(cost_high_opt, np.minimum.accumulate(hist_high_opt), color=c)
+                            # # plt.scatter(cost_high_opt, hist_high_opt, c=c)
+                            # plt.yscale('log')
+
+                        opt_median = np.median(hist_high_opt_mins)
+                        opt_medians.append(opt_median)
+
+        opt_medians_model_types.append(np.array(opt_medians))
+
+    # print(opt_medians_model_types)
+
+    log_improvement = np.log(np.maximum(opt_medians_model_types[0], 1e-9) / np.maximum(opt_medians_model_types[1], 1e-9))
+    log_improvement.sort()
+    print(log_improvement)
+    plt.hist(log_improvement, ec='k', bins=30)
+    print('lf', lf_el, 'cr', problem_el.cost_ratio, str(np.median(log_improvement)), str(np.mean(log_improvement)))
+    plt.title(str(np.median(log_improvement)) + ', ' + str(np.mean(log_improvement)))
 
     return
