@@ -428,9 +428,9 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                                 scaler_y_high=None,
                             )
 
-                            L1E, L2E, L1E_div_L1D, L1E_div_L2D, L2E_div_L1D, L2E_div_L2D = rqmc(
-                                exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y)
-                            )
+                            # L1E, L2E, L1E_div_L1D, L1E_div_L2D, L2E_div_L1D, L2E_div_L2D = rqmc(
+                            #     exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y)
+                            # )
 
                             # print(2 * L1E_div_L1D * np.sqrt(np.abs(test_y_var_list_high)).sum() / L1E)
                             # print(L1E_div_L2D * np.sqrt(np.abs(test_y_var_list_high).sum()) / L2E)
@@ -489,7 +489,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
 
                             # y_min_pred = torch.amin(train_obj_high)
 
-                            while cumulative_cost < max_budget:  # and costs_since_improvement < 20:
+                            while cumulative_cost < max_budget and iteration < 75:  # and costs_since_improvement < 20:
                                 if iteration % 5 == 0: print('iteration', iteration, ',',
                                                              float(100 * cumulative_cost / max_budget),
                                                              '% of max. budget')
@@ -537,9 +537,9 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                                     scaler_y_high=None,
                                 )
 
-                                L1E, L2E, L1E_div_L1D, L1E_div_L2D, L2E_div_L1D, L2E_div_L2D = rqmc(
-                                    exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y)
-                                )
+                                # L1E, L2E, L1E_div_L1D, L1E_div_L2D, L2E_div_L1D, L2E_div_L2D = rqmc(
+                                #     exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y)
+                                # )
 
                                 # print()
                                 # print(2 * L1E_div_L1D * np.sqrt(np.abs(test_y_var_list_high)).sum() / L1E)
@@ -708,15 +708,15 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
                         opt_median = np.median(hist_high_opt_mins)
                         opt_medians.append(opt_median)
 
-        opt_medians_model_types.append(np.array(opt_medians))
-
-    # print(opt_medians_model_types)
-
-    log_improvement = np.log(np.maximum(opt_medians_model_types[0], 1e-9) / np.maximum(opt_medians_model_types[1], 1e-9))
-    log_improvement.sort()
-    print(log_improvement)
-    plt.hist(log_improvement, ec='k', bins=30)
-    print('lf', lf_el, 'cr', problem_el.cost_ratio, str(np.median(log_improvement)), str(np.mean(log_improvement)))
-    plt.title(str(np.median(log_improvement)) + ', ' + str(np.mean(log_improvement)))
+    #     opt_medians_model_types.append(np.array(opt_medians))
+    #
+    # # print(opt_medians_model_types)
+    #
+    # log_improvement = np.log(np.maximum(opt_medians_model_types[0], 1e-9) / np.maximum(opt_medians_model_types[1], 1e-9))
+    # log_improvement.sort()
+    # print(log_improvement)
+    # plt.hist(log_improvement, ec='k', bins=30)
+    # print('lf', lf_el, 'cr', problem_el.cost_ratio, str(np.median(log_improvement)), str(np.mean(log_improvement)))
+    # plt.title(str(np.median(log_improvement)) + ', ' + str(np.mean(log_improvement)))
 
     return
