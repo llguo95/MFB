@@ -776,7 +776,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
 
 def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=None, scramble=True,
                  n_inf=500, random=False, noise_fix=True, noise_type='b', n_reg_lf_init_el=None, max_budget=None,
-                 post_processing=False, acq_type='EI', iter_thresh=100, dev=False, opt_problem_name='exp_test', n_DoE=0):
+                 post_processing=False, acq_type='EI', iter_thresh=100, dev=False, opt_problem_name='exp_test', n_DoE=0, exp_name='exp_0'):
 
     bds = problem_el.bounds
     dim = problem_el.objective_function.dim
@@ -872,6 +872,48 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
         train_x_low = torch.stack([x[:-1] for x in train_x if x[-1] != 1])
         train_obj_low = torch.stack(
             [y for i, y in enumerate(train_obj) if train_x[i, -1] != 1])
+
+    if not os.path.exists('opt_data'):
+        os.mkdir('opt_data')
+
+    if not os.path.exists('opt_data/' + exp_name):
+        os.mkdir('opt_data/' + exp_name)
+
+    if not os.path.exists('opt_data_dev'):
+        os.mkdir('opt_data_dev')
+
+    if not os.path.exists('opt_data_dev/' + exp_name):
+        os.mkdir('opt_data_dev/' + exp_name)
+
+    ### NAME CONVENTION: dim, noise type, noise fix, LF parameter,
+    ### HF volume, LF volume
+    # opt_problem_name = str(dim - 1) + '_d' \
+    #                    + ',' + noise_type + '_nt' \
+    #                    + ',' + str(noise_fix) + '_nf' \
+    #                    + ',' + str(lf_el) + '_lf' \
+    #                    + ',' + str(n_reg_init_el) + '_nh,' + str(n_reg_lf_init_el) + '_nl' \
+    #                    + ',' + str(max_budget) + '_b' \
+    #                    + ',' + str(problem_el.cost_ratio) + '_cr'
+
+    if dev:
+        opt_problem_path = 'opt_data_dev/' + exp_name + '/' + opt_problem_name
+    else:
+        opt_problem_path = 'opt_data/' + exp_name + '/' + opt_problem_name
+
+    if not os.path.exists(opt_problem_path):
+        os.mkdir(opt_problem_path)
+
+    objective_path = opt_problem_path + '/' + problem_el.objective_function.name
+
+    if not os.path.exists(objective_path):
+        os.mkdir(objective_path)
+
+    model_problem_path = objective_path + '/' + model_type_el
+
+    if not os.path.exists(model_problem_path):
+        os.mkdir(model_problem_path)
+
+    DoE_no_path = model_problem_path + '/' + str(n_DoE)
 
     while cumulative_cost < max_budget and iteration < iter_thresh:
         if iteration % 5 == 0: print('iteration', iteration, ',',
@@ -1038,49 +1080,6 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
 
     df_res = pd.concat([df, df2, df3], axis=1)
 
-    # print(df_res)
-
-    if not os.path.exists('opt_data'):
-        os.mkdir('opt_data')
-
-    if not os.path.exists('opt_data/exp2'):
-        os.mkdir('opt_data/exp2')
-
-    if not os.path.exists('opt_data_dev'):
-        os.mkdir('opt_data_dev')
-
-    if not os.path.exists('opt_data_dev/exp2'):
-        os.mkdir('opt_data_dev/exp2')
-
-    ### NAME CONVENTION: dim, noise type, noise fix, LF parameter,
-    ### HF volume, LF volume
-    # opt_problem_name = str(dim - 1) + '_d' \
-    #                    + ',' + noise_type + '_nt' \
-    #                    + ',' + str(noise_fix) + '_nf' \
-    #                    + ',' + str(lf_el) + '_lf' \
-    #                    + ',' + str(n_reg_init_el) + '_nh,' + str(n_reg_lf_init_el) + '_nl' \
-    #                    + ',' + str(max_budget) + '_b' \
-    #                    + ',' + str(problem_el.cost_ratio) + '_cr'
-
-    if dev:
-        opt_problem_path = 'opt_data_dev/exp2/' + opt_problem_name
-    else:
-        opt_problem_path = 'opt_data/exp2/' + opt_problem_name
-
-    if not os.path.exists(opt_problem_path):
-        os.mkdir(opt_problem_path)
-
-    objective_path = opt_problem_path + '/' + problem_el.objective_function.name
-
-    if not os.path.exists(objective_path):
-        os.mkdir(objective_path)
-
-    model_problem_path = objective_path + '/' + model_type_el
-
-    if not os.path.exists(model_problem_path):
-        os.mkdir(model_problem_path)
-
-    DoE_no_path = model_problem_path + '/' + str(n_DoE)
     print(DoE_no_path)
 
     df_rec.to_csv(DoE_no_path + '_rec.csv')

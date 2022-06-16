@@ -98,7 +98,7 @@ for noise_type in ['b', 'n']:
                         bo_main_unit(problem_el=problem_el, model_type_el=model_type_el, lf_el=lf_el,
                                      n_reg_init_el=n_reg[0], n_reg_lf_init_el=n_reg_lf[0], scramble=scramble,
                                      noise_fix=noise_fix, noise_type=noise_type, max_budget=budget, acq_type=acq_type,
-                                     iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name, n_DoE=n_DoE)
+                                     iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name, n_DoE=n_DoE, exp_name='exp2')
 
                         end_unit = time.time()
                         print('Unit run time', end_unit - start_unit)
