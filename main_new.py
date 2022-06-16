@@ -1044,13 +1044,13 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
         os.mkdir('opt_data')
 
     if not os.path.exists('opt_data/exp2'):
-        os.mkdir('opt_data/exp1')
+        os.mkdir('opt_data/exp2')
 
     if not os.path.exists('opt_data_dev'):
         os.mkdir('opt_data_dev')
 
     if not os.path.exists('opt_data_dev/exp2'):
-        os.mkdir('opt_data_dev/exp1')
+        os.mkdir('opt_data_dev/exp2')
 
     ### NAME CONVENTION: dim, noise type, noise fix, LF parameter,
     ### HF volume, LF volume
