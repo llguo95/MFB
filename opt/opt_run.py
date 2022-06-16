@@ -1,3 +1,16 @@
+import sys
+
+custom_lib_rel_path = '../../'
+
+sys.path.insert(0, custom_lib_rel_path + 'Python_Benchmark_Test_Optimization_Function_Single_Objective')
+import pybenchfunction
+
+sys.path.insert(0, custom_lib_rel_path + 'gpytorch')
+import gpytorch
+
+sys.path.insert(0, custom_lib_rel_path + 'GPy')
+import GPy
+
 import time
 import pickle
 import torch
