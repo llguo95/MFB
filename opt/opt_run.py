@@ -61,12 +61,12 @@ model_type = ['sogpr', 'stmf']
 lf = [.9]
 n_reg = [5 ** dim]
 n_reg_lf = [cost_ratio * 5 ** (dim - 1)]
-scramble = 0
+scramble = 1
 noise_fix = 0
 budget = 3 * 5 ** dim
 post_processing = 0
 acq_type = 'EI'
-iter_thresh = 50 * 3 ** (dim - 1)
+iter_thresh = 25 * 3 ** (dim - 1)
 dev = 0
 # opt_problem_name = str(dim) + '_' + noise_type + '_' + acq_type
 DoE_no = 10
@@ -91,10 +91,15 @@ for noise_type in ['b', 'n']:
 
                     for n_DoE in range(DoE_no):
 
+                        start_unit = time.time()
+
                         bo_main_unit(problem_el=problem_el, model_type_el=model_type_el, lf_el=lf_el,
                                      n_reg_init_el=n_reg[0], n_reg_lf_init_el=n_reg_lf[0], scramble=scramble,
                                      noise_fix=noise_fix, noise_type=noise_type, max_budget=budget, acq_type=acq_type,
-                                     iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name)
+                                     iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name, n_DoE=n_DoE)
+
+                        end_unit = time.time()
+                        print('Unit run time', end_unit - start_unit)
 
 stop = time.time()
 print('Total run time', stop - start)
