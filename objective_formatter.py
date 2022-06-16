@@ -78,11 +78,13 @@ class AugmentedTestFunction(SyntheticTestFunction):
             stdev = torch.std(res_high)
 
         if self.noise_type == 'bn':
-            res_low = stdev * white_noise + torch.mean(res_high) #+ 500 * brown_noise
+            # res_low = stdev * white_noise + torch.mean(res_high) #+ 500 * brown_noise
+            res_low = stdev * white_noise #+ 500 * brown_noise
         elif self.noise_type == 'n':
             res_low = stdev * white_noise + res_high
         elif self.noise_type == 'b':
-            res_low = torch.mean(res_high)
+            # res_low = torch.mean(res_high)
+            res_low = 0
         else:
             res_low = stdev * white_noise + torch.mean(res_high) #+ 500 * brown_noise
 

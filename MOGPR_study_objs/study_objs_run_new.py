@@ -18,7 +18,7 @@ f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
 excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
 fs = [f for f in f_class_list if f.name not in excluded_fs]
 
-dim = 1
+dim = 2
 noise_type = 'b'
 post_processing = 1
 
@@ -31,14 +31,14 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-][2:3]
+][6:7]
 
 print([(i, f.name) for (i, f) in enumerate(fs)])
 
-model_type = ['sogpr']
+model_type = ['mtask']
 lf = [.5]
-n_reg = [5, 10, 15, 20]
-n_reg_lf = [1, 1, 1, 1]
+n_reg = [25]
+n_reg_lf = [250]
 scramble = 0
 noise_fix = 0
 

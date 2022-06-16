@@ -30,6 +30,7 @@ cost_ratio = 25
 print()
 print('dim = ', dim)
 print('noise_type = ', noise_type)
+print('cost_ratio = ', cost_ratio)
 
 problem = [
     MFProblem(
@@ -41,25 +42,27 @@ problem = [
         cost_ratio=cost_ratio
     )
     for f in fs
-][6:7]
+][:1]
 
-model_type = ['stmf']
+model_type = ['sogpr', 'stmf']
 lf = [.75]
 n_reg = [5 ** dim]
-# n_reg_lf = [2 * 5 ** dim]
-n_reg_lf = [cost_ratio]
+n_reg_lf = [cost_ratio * 5 ** (dim - 1)]
 scramble = 0
 noise_fix = 0
 budget = 3 * 5 ** dim
-# budget = 10
-post_processing = 0
+post_processing = 1
 acq_type = 'EI'
+iter_thresh = 50
+dev = 1
 
 trial = 0
 start = time.time()
+
 while trial < 1:
     bo_main(problem=problem, model_type=model_type, lf=lf, n_reg_init=n_reg, scramble=scramble, noise_fix=noise_fix,
-            n_reg_lf_init=n_reg_lf, max_budget=budget, post_processing=post_processing, acq_type=acq_type)
+            n_reg_lf_init=n_reg_lf, max_budget=budget, post_processing=post_processing, acq_type=acq_type,
+            iter_thresh=iter_thresh, dev=dev)
     trial += 1
 stop = time.time()
 print('Total run time', stop - start)

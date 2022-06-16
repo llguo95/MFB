@@ -161,14 +161,17 @@ def posttrainer(
     test_x = np.meshgrid(*test_x_axes)
     test_x_list = np.hstack([layer.reshape(-1, 1) for layer in test_x])
 
-    # lf_vec = problem_el.fidelities[0].cpu() * np.ones((np.shape(test_x_list)[0], 1))
+    lf_vec = problem_el.fidelities[0].cpu() * np.ones((np.shape(test_x_list)[0], 1))
     hf_vec = np.ones((np.shape(test_x_list)[0], 1))
 
-    # test_x_list_low = np.concatenate((test_x_list, lf_vec), axis=1)
+    test_x_list_low = np.concatenate((test_x_list, lf_vec), axis=1)
     test_x_list_high = np.concatenate((test_x_list, hf_vec), axis=1)
 
     exact_y = problem_el.objective_function(torch.Tensor(test_x_list_high)).cpu().detach().numpy()
-    # exact_y_low = problem_el.objective_function(torch.Tensor(test_x_list_low)).cpu().detach().numpy()
+    exact_y_low = problem_el.objective_function(torch.Tensor(test_x_list_low)).cpu().detach().numpy()
+
+    test_y_list_low = None
+    test_y_var_list_low = None
 
     if model_type_el == 'cokg_dms':
 
@@ -220,4 +223,9 @@ def posttrainer(
         # test_y_list_low = model.posterior(torch.from_numpy(test_x_list)).mean.detach().numpy()[:, 0][:, None]
         # test_y_var_list_low = model.posterior(torch.from_numpy(test_x_list)).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]
 
-    return test_y_list_high, test_y_var_list_high, exact_y,
+        test_y_list_low = model.posterior(torch.from_numpy(test_x_list_low).to(**tkwargs)).mean.cpu().detach().numpy()
+        test_y_var_list_low = model.posterior(
+            torch.from_numpy(test_x_list_low).to(**tkwargs)
+        ).mvn.covariance_matrix.diag().cpu().detach().numpy()[:, None]
+
+    return test_y_list_high, test_y_var_list_high, exact_y, test_y_list_low, test_y_var_list_low, exact_y_low

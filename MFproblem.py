@@ -42,10 +42,10 @@ tkwargs = {
     # "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     "device": torch.device("cpu"),
 }
-# SMOKE_TEST = os.environ.get("SMOKE_TEST")
+
 SMOKE_TEST = 0 # os.environ.get("SMOKE_TEST")
 
-NUM_RESTARTS = 10 if not SMOKE_TEST else 2
+NUM_RESTARTS = 40 if not SMOKE_TEST else 2
 RAW_SAMPLES = 64 if not SMOKE_TEST else 4
 
 
@@ -108,7 +108,7 @@ class MFProblem:
             soboleng = SobolEngine(dimension=self.objective_function.dim - 1, scramble=scramble)
             if not scramble:
                 soboleng.fast_forward(1234)
-            train_x = soboleng.draw(n_tot).to(**tkwargs)
+            train_x = soboleng.draw(n_tot).to(**tkwargs) #/ 3 + 2 / 3
 
             indices = torch.zeros((n_tot, 1))
             for i in range(len(indices)):
@@ -248,43 +248,79 @@ class MFProblem:
     #### Acquisition function ####
     ##############################
 
-    def get_mfacq(self, model):
+    def get_mfacq(self, model, y=None, acq_type='EI'):
         bounds_x = self.bounds
         candidate_set = torch.rand(16, bounds_x.size(1), device=self.bounds.device, dtype=self.bounds.dtype)
 
         train_f = self.fidelities[torch.randint(2, (16, 1))]
         candidate_set_full = torch.cat((candidate_set, train_f), dim=1)
 
-        if model._get_name() != 'SingleTaskGP':
-            # acq = qMultiFidelityMaxValueEntropy(
-            #     model=model,
-            #     candidate_set=candidate_set_full,
-            #     num_fantasies=128 if not SMOKE_TEST else 2,
-            #     cost_aware_utility=self.cost_aware_utility(),
-            #     maximize=False,
-            # )
+        acq = None
+
+        if acq_type == 'EI':
+            acq = ExpectedImprovement(
+                model=model,
+                best_f=torch.amin(y),
+                maximize=False,
+            )
+        elif acq_type == 'UCB':
             acq = UpperConfidenceBound(
                 model=model,
                 beta=4,
                 maximize=False
             )
-            # acq = ExpectedImprovement(
-            #     model=model,
-            #     best_f=500,
-            #     maximize=False,
-            # )
-        else:
-            # acq = qMaxValueEntropy(
-            #     model=model,
-            #     candidate_set=candidate_set,
-            #     num_fantasies=128 if not SMOKE_TEST else 2,
-            #     maximize=False
-            # )
-            acq = UpperConfidenceBound(
-                model=model,
-                beta=4,
-                maximize=False
-            )
+        elif acq_type == 'ES':
+            if model._get_name() != 'SingleTaskGP':
+                acq = qMultiFidelityMaxValueEntropy(
+                    model=model,
+                    candidate_set=candidate_set_full,
+                    num_fantasies=128 if not SMOKE_TEST else 2,
+                    cost_aware_utility=self.cost_aware_utility(),
+                    maximize=False,
+                )
+            else:
+                acq = qMaxValueEntropy(
+                    model=model,
+                    candidate_set=candidate_set,
+                    num_fantasies=128 if not SMOKE_TEST else 2,
+                    maximize=False
+                )
+
+        # if model._get_name() != 'SingleTaskGP':
+        #     # acq = qMultiFidelityMaxValueEntropy(
+        #     #     model=model,
+        #     #     candidate_set=candidate_set_full,
+        #     #     num_fantasies=128 if not SMOKE_TEST else 2,
+        #     #     cost_aware_utility=self.cost_aware_utility(),
+        #     #     maximize=False,
+        #     # )
+        #     # acq = UpperConfidenceBound(
+        #     #     model=model,
+        #     #     beta=4,
+        #     #     maximize=False
+        #     # )
+        #     acq = ExpectedImprovement(
+        #         model=model,
+        #         best_f=torch.amin(y),
+        #         maximize=False,
+        #     )
+        # else:
+        #     # acq = qMaxValueEntropy(
+        #     #     model=model,
+        #     #     candidate_set=candidate_set,
+        #     #     num_fantasies=128 if not SMOKE_TEST else 2,
+        #     #     maximize=False
+        #     # )
+        #     # acq = UpperConfidenceBound(
+        #     #     model=model,
+        #     #     beta=4,
+        #     #     maximize=False
+        #     # )
+        #     acq = ExpectedImprovement(
+        #         model=model,
+        #         best_f=torch.amin(y),
+        #         maximize=False,
+        #     )
 
         return acq
 
@@ -292,7 +328,14 @@ class MFProblem:
     #### Acquisition optimizer ####
     ###############################
 
-    def optimize_mfacq_and_get_observation(self, acq_f):
+    def optimize_mfacq_and_get_observation(self, acq_f, final=False):
+
+        if final:
+            fixed_features_list = [{self.objective_function.dim - 1: 1.0},
+                                   {self.objective_function.dim - 1: 1.0}]
+        else:
+            fixed_features_list = [{self.objective_function.dim - 1: float(self.fidelities[0])},
+                                   {self.objective_function.dim - 1: 1.0}]
 
         cost = None
         if acq_f.model._get_name() != 'SingleTaskGP':
@@ -301,8 +344,7 @@ class MFProblem:
             candidates, _ = optimize_acqf_mixed(
                 acq_function=acq_f,
                 bounds=aug_bounds,
-                fixed_features_list=[{self.objective_function.dim - 1: float(self.fidelities[0])},
-                                     {self.objective_function.dim - 1: 1.0}],
+                fixed_features_list=fixed_features_list,
                 q=1,
                 num_restarts=NUM_RESTARTS,
                 raw_samples=RAW_SAMPLES,
@@ -311,11 +353,12 @@ class MFProblem:
             )
             # observe new values
             cost = self.cost_model()(candidates).sum()
-            # print(self.fidelities)
             # print(cost)
             # print(self.fidelities)
             new_x = candidates
+            # print(new_x)
             new_obj = self.objective_function(new_x).unsqueeze(-1)
+            # print(new_obj)
         else:
             candidates, _ = optimize_acqf(
                 acq_function=acq_f,
