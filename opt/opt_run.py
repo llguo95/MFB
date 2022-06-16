@@ -11,6 +11,8 @@ import gpytorch
 sys.path.insert(0, custom_lib_rel_path + 'GPy')
 import GPy
 
+sys.path.insert(0, custom_lib_rel_path + 'MFB')
+
 import time
 import pickle
 import torch
