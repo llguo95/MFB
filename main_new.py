@@ -1043,13 +1043,13 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
     if not os.path.exists('opt_data'):
         os.mkdir('opt_data')
 
-    if not os.path.exists('opt_data/exp1'):
+    if not os.path.exists('opt_data/exp2'):
         os.mkdir('opt_data/exp1')
 
     if not os.path.exists('opt_data_dev'):
         os.mkdir('opt_data_dev')
 
-    if not os.path.exists('opt_data_dev/exp1'):
+    if not os.path.exists('opt_data_dev/exp2'):
         os.mkdir('opt_data_dev/exp1')
 
     ### NAME CONVENTION: dim, noise type, noise fix, LF parameter,
@@ -1063,9 +1063,9 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
     #                    + ',' + str(problem_el.cost_ratio) + '_cr'
 
     if dev:
-        opt_problem_path = 'opt_data_dev/exp1/' + opt_problem_name
+        opt_problem_path = 'opt_data_dev/exp2/' + opt_problem_name
     else:
-        opt_problem_path = 'opt_data/exp1/' + opt_problem_name
+        opt_problem_path = 'opt_data/exp2/' + opt_problem_name
 
     if not os.path.exists(opt_problem_path):
         os.mkdir(opt_problem_path)

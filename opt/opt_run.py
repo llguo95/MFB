@@ -40,7 +40,7 @@ print([(i, f(d=1).get_global_minimum(d=1)[1]) for (i, f) in enumerate(fs)])
 
 dim = 1
 noise_type = 'b'
-cost_ratio = 100
+cost_ratio = 25
 
 print()
 print('dim = ', dim)
