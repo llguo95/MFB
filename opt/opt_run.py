@@ -40,7 +40,7 @@ print([(i, f(d=1).get_global_minimum(d=1)[1]) for (i, f) in enumerate(fs)])
 
 dim = 1
 noise_type = 'b'
-cost_ratio = 25
+cost_ratio = 10
 
 print()
 print('dim = ', dim)
@@ -65,10 +65,10 @@ n_reg = [5 ** dim]
 n_reg_lf = [cost_ratio * 5 ** (dim - 1)]
 scramble = 1
 noise_fix = 0
-budget = 5 * 3 ** dim
+budget = 5 * 3 ** (dim - 1)
 post_processing = 0
 acq_type = 'EI'
-iter_thresh = 25 * 3 ** (dim - 1)
+iter_thresh = 50 * 3 ** (dim - 1)
 dev = 0
 # opt_problem_name = str(dim) + '_' + noise_type + '_' + acq_type
 DoE_no = 10
@@ -88,6 +88,9 @@ for noise_type in ['b', 'n']:
         for problem_el in problem:
 
             for model_type_el in model_type:
+                exp_name = 'exp3'
+                if model_type_el == 'sogpr':
+                    exp_name += '_sogpr'
 
                 for lf_el in lf:
 
@@ -98,7 +101,7 @@ for noise_type in ['b', 'n']:
                         bo_main_unit(problem_el=problem_el, model_type_el=model_type_el, lf_el=lf_el,
                                      n_reg_init_el=n_reg[0], n_reg_lf_init_el=n_reg_lf[0], scramble=scramble,
                                      noise_fix=noise_fix, noise_type=noise_type, max_budget=budget, acq_type=acq_type,
-                                     iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name, n_DoE=n_DoE, exp_name='exp2')
+                                     iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name, n_DoE=n_DoE, exp_name=exp_name)
 
                         end_unit = time.time()
                         print('Unit run time', end_unit - start_unit)
