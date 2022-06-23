@@ -774,7 +774,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
     return
 
 
-def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=None, scramble=True,
+def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=None, scramble=True, cost_ratio=10,
                  n_inf=500, random=False, noise_fix=True, noise_type='b', n_reg_lf_init_el=None, max_budget=None,
                  post_processing=False, acq_type='EI', iter_thresh=100, dev=False, opt_problem_name='exp_test', n_DoE=0, exp_name='exp_0'):
 
@@ -783,6 +783,7 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
 
     problem_el.fidelities = torch.tensor([lf_el, 1.0], **tkwargs)
     problem_el.objective_function.noise_type = noise_type
+    problem_el.cost_ratio = cost_ratio
 
     train_x, train_obj = pretrainer(
         problem_el,
@@ -818,7 +819,7 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
         scaler_y_high=None,
     )
 
-    vis_opt = 0
+    vis_opt = 1
     if vis_opt and dim - 1 == 1:
         plt.figure(num=problem_el.objective_function.name + '_init_' + str(n_DoE))
         coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
@@ -873,32 +874,17 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
         train_obj_low = torch.stack(
             [y for i, y in enumerate(train_obj) if train_x[i, -1] != 1])
 
-    if not os.path.exists('opt_data'):
-        os.mkdir('opt_data')
-
-    if not os.path.exists('opt_data/' + exp_name):
-        os.mkdir('opt_data/' + exp_name)
-
-    if not os.path.exists('opt_data_dev'):
-        os.mkdir('opt_data_dev')
-
-    if not os.path.exists('opt_data_dev/' + exp_name):
-        os.mkdir('opt_data_dev/' + exp_name)
-
-    ### NAME CONVENTION: dim, noise type, noise fix, LF parameter,
-    ### HF volume, LF volume
-    # opt_problem_name = str(dim - 1) + '_d' \
-    #                    + ',' + noise_type + '_nt' \
-    #                    + ',' + str(noise_fix) + '_nf' \
-    #                    + ',' + str(lf_el) + '_lf' \
-    #                    + ',' + str(n_reg_init_el) + '_nh,' + str(n_reg_lf_init_el) + '_nl' \
-    #                    + ',' + str(max_budget) + '_b' \
-    #                    + ',' + str(problem_el.cost_ratio) + '_cr'
-
+    work_folder_name = 'opt_data'
     if dev:
-        opt_problem_path = 'opt_data_dev/' + exp_name + '/' + opt_problem_name
-    else:
-        opt_problem_path = 'opt_data/' + exp_name + '/' + opt_problem_name
+        work_folder_name += '_dev'
+
+    if not os.path.exists(work_folder_name):
+        os.mkdir(work_folder_name)
+
+    if not os.path.exists(work_folder_name + '/' + exp_name):
+        os.mkdir(work_folder_name + '/' + exp_name)
+
+    opt_problem_path = work_folder_name + '/' + exp_name + '/' + opt_problem_name
 
     if not os.path.exists(opt_problem_path):
         os.mkdir(opt_problem_path)
@@ -968,7 +954,14 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
             rqmc(exact_y.flatten() - test_y_list_high.flatten(), exact_y - np.mean(exact_y))
         )
 
-        if vis_opt and dim - 1 == 1:
+        if vis_opt and dim - 1 == 1 and n_DoE == 0:
+
+            if not os.path.exists(work_folder_name + '/img'):
+                os.mkdir(work_folder_name + '/img')
+
+            if not os.path.exists(work_folder_name + '/img/' + problem_el.objective_function.name):
+                os.mkdir(work_folder_name + '/img/' + problem_el.objective_function.name)
+
             plt.figure(num=problem_el.objective_function.name + '_' + str(iteration))
             coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
             plt.plot(coord_list, test_y_list_high, 'r--', label='Predictive HF mean')
@@ -1002,10 +995,13 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
 
             col = 'r' if train_x[-1, -1] == 1 else 'g'
             plt.scatter(train_x[-1, 0], train_obj[-1], c=col, alpha=.5, s=150)
-            c = .1
+            plt.title(problem_el.objective_function.name + '_' + str(iteration))
+            # c = .1
             # plt.ylim([(1 + c) * np.amin(exact_y) - c * np.amax(exact_y),
             #           (1 + c) * np.amax(exact_y) - c * np.amin(exact_y)])
             plt.tight_layout()
+
+            plt.savefig(work_folder_name + '/img/' + problem_el.objective_function.name + '/iter' + '_' + str(iteration) + '.png')
 
             plt.figure(num='acq' + str(iteration))
             if model_type_el == 'sogpr':
@@ -1021,6 +1017,11 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
                 plt.plot(coord_list, mfacq_eval_high.detach().numpy(), label='high')
                 plt.plot(coord_list, mfacq_eval_low.detach().numpy(), label='low')
                 plt.legend()
+
+            plt.title(problem_el.objective_function.name + '_acq_' + str(iteration))
+            plt.tight_layout()
+
+            plt.savefig(work_folder_name + '/img/' + problem_el.objective_function.name + '/acq' + str(iteration) + '.png')
 
         iteration += 1
 

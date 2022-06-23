@@ -27,6 +27,8 @@ from botorch.models.transforms.input import Normalize
 
 from botorch.models.gp_regression import SingleTaskGP
 from botorch.models.multitask import MultiTaskGP
+
+import vfacq
 from cokgj import CoKrigingGP
 
 from botorch.models.gp_regression_fidelity import SingleTaskMultiFidelityGP
@@ -264,10 +266,16 @@ class MFProblem:
                 maximize=False,
             )
         elif acq_type == 'UCB':
-            acq = UpperConfidenceBound(
+            # acq = UpperConfidenceBound(
+            #     model=model,
+            #     beta=4,
+            #     maximize=False,
+            # )
+            acq = vfacq.VFUpperConfidenceBound(
                 model=model,
                 beta=4,
-                maximize=False
+                maximize=False,
+                cr=self.cost_ratio,
             )
         elif acq_type == 'ES':
             if model._get_name() != 'SingleTaskGP':

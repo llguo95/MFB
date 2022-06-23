@@ -45,10 +45,10 @@ dim = 1
 noise_type = 'b'
 cost_ratio = 25
 
-print()
-print('dim = ', dim)
+# print()
+# print('dim = ', dim)
 # print('noise_type = ', noise_type)
-print('cost_ratio = ', cost_ratio)
+# print('cost_ratio = ', cost_ratio)
 
 problem = [
     MFProblem(
@@ -79,35 +79,36 @@ DoE_no = 10
 start = time.time()
 
 exp_dict = {
-    'sogpr': 'exp2_sogpr',
-    'stmf': 'exp2',
+    'sogpr': 'exp3_sogpr',
+    'stmf': 'exp3',
 }
 
 # bo_main(problem=problem, model_type=model_type, lf=lf, n_reg_init=n_reg, scramble=scramble, noise_fix=noise_fix,
 #         n_reg_lf_init=n_reg_lf, max_budget=budget, post_processing=post_processing, acq_type=acq_type,
 #         iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name)
 
-for noise_type in ['b']:
+for noise_type in ['b', 'n']:
 
-    for acq_type in ['EI']:
+    for acq_type in ['EI', 'UCB']:
 
         meds_model = []
         for model_type_el in model_type:
-            print(model_type_el)
+            # print(model_type_el)
 
             if model_type_el == 'sogpr':
                 opt_problem_name = str(dim) + '_b_' + acq_type
             else:
                 opt_problem_name = str(dim) + '_' + noise_type + '_' + acq_type
-            # print(opt_problem_name)
+                print()
+                print(opt_problem_name)
 
             meds = []
             for problem_i, problem_el in enumerate(problem):
-                if problem_i == 20:
-                # if problem_i != 0:
-                    continue
+                # if problem_i == 20:
+                # # if problem_i != 16:
+                #     continue
                 # print()
-                print(problem_el.objective_function.name)
+                # print(problem_el.objective_function.name)
 
                 opts = []
                 for n_DoE in range(DoE_no):
@@ -119,19 +120,30 @@ for noise_type in ['b']:
                     rec_csv = exp_name + '_rec.csv'
                     df_rec = pd.read_csv(rec_csv, index_col=0)
                     opt = df_rec['y - y_min'].values
-                    print(opt)
+                    # print(opt)
                     opts.append(opt)
-                med = np.median(opts) + 1e-3
-                print()
-                print(med)
+
+                med = np.median(opts)
+                # print()
+                # print(med)
                 meds.append(med)
+
             meds_model.append(np.array(meds))
             # plt.hist(np.log(meds), ec='k', bins=30, label=model_type_el)
             # plt.legend()
-        meds_diff = meds_model[1] / meds_model[0]
-        print()
-        print(meds_diff)
-        plt.hist(np.log10(meds_diff), ec='k', bins=30)
+
+        meds_diff = meds_model[0] - meds_model[1]
+        print('Single-fidelity better for', np.sum(meds_diff < 0), 'functions')
+        print('Multi-fidelity better for', np.sum(meds_diff > 0), 'functions')
+        meds_list = list(zip(meds_diff, [p.objective_function.name for i, p in enumerate(problem)]))
+        meds_list.sort(key=lambda x: x[0])
+        print(meds_list)
+        # print()
+        meds_diff.sort()
+        # print(meds_diff)
+        # print(np.median(meds_diff))
+        # plt.figure(num=noise_type + acq_type)
+        # plt.hist(meds_diff, ec='k', bins=30)
 
 stop = time.time()
 # print('Total run time', stop - start)
