@@ -1003,7 +1003,7 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
             #           (1 + c) * np.amax(exact_y) - c * np.amin(exact_y)])
             plt.tight_layout()
 
-            plt.savefig(work_folder_name + '/img/' + problem_el.objective_function.name + '/iter' + '_' + str(iteration) + '.png')
+            plt.savefig(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name + '/iter' + '_' + str(iteration) + '.png')
 
             plt.figure(num='acq' + str(iteration))
             if model_type_el == 'sogpr':
@@ -1023,7 +1023,7 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
             plt.title(problem_el.objective_function.name + '_acq_' + str(iteration))
             plt.tight_layout()
 
-            plt.savefig(work_folder_name + '/img/' + problem_el.objective_function.name + '/acq' + str(iteration) + '.png')
+            plt.savefig(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name + '/acq' + str(iteration) + '.png')
 
         iteration += 1
 

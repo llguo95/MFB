@@ -51,7 +51,7 @@ problem = [
     for f in fs
 ]
 
-model_type = ['stmf']
+model_type = ['sogpr', 'stmf']
 lf = [.9]
 noise_types = ['b']
 acq_types = ['UCB']
@@ -70,7 +70,7 @@ print('cost_ratio = ', cost_ratio)
 dev = 1
 DoE_no = 10
 exp_name = 'exp4'
-vis_opt = 0
+vis_opt = 1
 
 start = time.time()
 
