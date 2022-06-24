@@ -905,7 +905,21 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
                                      float(100 * cumulative_cost / max_budget),
                                      '% of max. budget')
 
-        mfacq = problem_el.get_mfacq(model, y=train_obj_high, acq_type=acq_type)
+        test_y_list_high, test_y_var_list_high, exact_y, \
+        test_y_list_low, test_y_var_list_low, exact_y_low = posttrainer(
+            model,
+            model_type_el,
+            problem_el,
+            bds,
+            dim,
+            n_inf,
+            scaler_y_high=None,
+        )
+
+        mfacq = problem_el.get_mfacq(
+            model, y=train_obj_high, acq_type=acq_type,
+            mean=[test_y_list_low, test_y_list_high], var=[test_y_var_list_low, test_y_var_list_high],
+        )
         new_x, new_obj, cost = problem_el.optimize_mfacq_and_get_observation(mfacq)
         cost = 1 if cost is None else cost
         cumulative_cost += float(cost)
@@ -935,17 +949,6 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
             cons = Interval(1e-4, 1e-4 + 1e-10)
             model.likelihood.noise_covar.register_constraint("raw_noise", cons)
         fit_gpytorch_model(mll)
-
-        test_y_list_high, test_y_var_list_high, exact_y, \
-        test_y_list_low, test_y_var_list_low, exact_y_low = posttrainer(
-            model,
-            model_type_el,
-            problem_el,
-            bds,
-            dim,
-            n_inf,
-            scaler_y_high=None,
-        )
 
         cir_history.append(2 * np.amax(np.sqrt(np.abs(test_y_var_list_high))))
 

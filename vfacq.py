@@ -11,7 +11,7 @@ from torch import Tensor
 class VFUpperConfidenceBound(AnalyticAcquisitionFunction):
     r"""Single-outcome Upper Confidence Bound (UCB).
 
-    Analytic upper confidence bound that comprises of the posterior mean plus an
+    Analytic upper confidence bound that comprises the posterior mean plus an
     additional term: the posterior standard deviation weighted by a trade-off
     parameter, `beta`. Only supports the case of `q=1` (i.e. greedy, non-batch
     selection of design points). The model must be single-outcome.
@@ -26,13 +26,15 @@ class VFUpperConfidenceBound(AnalyticAcquisitionFunction):
     """
 
     def __init__(
-        self,
-        model: Model,
-        beta: Union[float, Tensor],
-        posterior_transform: Optional[PosteriorTransform] = None,
-        maximize: bool = True,
-        cr: float = 10,
-        **kwargs,
+            self,
+            model: Model,
+            beta: Union[float, Tensor],
+            posterior_transform: Optional[PosteriorTransform] = None,
+            maximize: bool = True,
+            cr: float = 10,
+            mean=None,
+            var=None,
+            **kwargs,
     ) -> None:
         r"""Single-outcome Upper Confidence Bound.
 
@@ -52,6 +54,8 @@ class VFUpperConfidenceBound(AnalyticAcquisitionFunction):
             beta = torch.tensor(beta)
         self.register_buffer("beta", beta)
         self.cr = cr
+        self.mean = mean
+        self.var = var
 
     @t_batch_mode_transform(expected_q=1)
     def forward(self, X: Tensor) -> Tensor:
@@ -75,12 +79,6 @@ class VFUpperConfidenceBound(AnalyticAcquisitionFunction):
         mean_high = mean_high.view(view_shape)
         variance_high = posterior_high.variance.view(view_shape)
 
-        # delta = (self.beta.expand_as(mean) * variance).sqrt()
-        # if self.maximize:
-        #     res = mean + delta
-        # else:
-        #     res = -mean + delta
-
         if X_high[0, 0, -1] != X[0, 0, -1]:
             posterior_low = self.model.posterior(
                 X=X, posterior_transform=self.posterior_transform
@@ -94,9 +92,20 @@ class VFUpperConfidenceBound(AnalyticAcquisitionFunction):
 
             sigma = variance_high.sqrt()
 
+        sample_mean_lf = torch.mean(torch.tensor(self.mean[0]))
+        sample_std_lf = torch.std(torch.tensor(self.mean[0]))
+        sample_mean_hf = torch.mean(torch.tensor(self.mean[1]))
+        sample_std_hf = torch.std(torch.tensor(self.mean[1]))
+
+        a1 = sample_mean_hf / sample_std_hf
+        a2 = sample_mean_lf / sample_std_lf
+
+        omega_1 = a1 / (a1 + a2)
+        omega_2 = a2 / (a1 + a2)
+
         if self.maximize:
-            res = mean_high + sigma
+            res = omega_1 * mean_high + omega_2 * sigma
         else:
-            res = -mean_high + sigma
+            res = -omega_1 * mean_high + omega_2 * sigma
 
         return res

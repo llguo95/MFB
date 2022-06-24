@@ -250,7 +250,7 @@ class MFProblem:
     #### Acquisition function ####
     ##############################
 
-    def get_mfacq(self, model, y=None, acq_type='EI'):
+    def get_mfacq(self, model, y=None, acq_type='EI', mean=None, var=None):
         bounds_x = self.bounds
         candidate_set = torch.rand(16, bounds_x.size(1), device=self.bounds.device, dtype=self.bounds.dtype)
 
@@ -276,6 +276,8 @@ class MFProblem:
                 beta=4,
                 maximize=False,
                 cr=self.cost_ratio,
+                mean=mean,
+                var=var,
             )
         elif acq_type == 'ES':
             if model._get_name() != 'SingleTaskGP':

@@ -51,10 +51,10 @@ problem = [
     for f in fs
 ]
 
-model_type = ['sogpr']
+model_type = ['stmf']
 lf = [.9]
 noise_types = ['b']
-acq_types = ['ES']
+acq_types = ['UCB']
 cost_ratio = 10
 n_reg = [5 ** dim]
 n_reg_lf = [cost_ratio * 5 ** (dim - 1)]
@@ -69,7 +69,7 @@ print('cost_ratio = ', cost_ratio)
 
 dev = 1
 DoE_no = 10
-exp_name = 'exp3'
+exp_name = 'exp4'
 vis_opt = 0
 
 start = time.time()
