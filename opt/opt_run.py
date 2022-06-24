@@ -51,10 +51,10 @@ problem = [
     for f in fs
 ]
 
-model_type = ['stmf']
+model_type = ['sogpr']
 lf = [.9]
 noise_types = ['b']
-acq_types = ['UCB']
+acq_types = ['ES']
 cost_ratio = 10
 n_reg = [5 ** dim]
 n_reg_lf = [cost_ratio * 5 ** (dim - 1)]
@@ -69,7 +69,8 @@ print('cost_ratio = ', cost_ratio)
 
 dev = 1
 DoE_no = 10
-exp_name = 'exp4'
+exp_name = 'exp3'
+vis_opt = 0
 
 start = time.time()
 
@@ -83,7 +84,9 @@ for noise_type in noise_types:
 
             for model_type_el in model_type:
                 if model_type_el == 'sogpr':
-                    exp_name += '_sogpr'
+                    exp_name_el = exp_name + '_sogpr'
+                else:
+                    exp_name_el = exp_name
 
                 for lf_el in lf:
 
@@ -92,9 +95,9 @@ for noise_type in noise_types:
                         start_unit = time.time()
 
                         bo_main_unit(problem_el=problem_el, model_type_el=model_type_el, lf_el=lf_el, cost_ratio=cost_ratio,
-                                     n_reg_init_el=n_reg[0], n_reg_lf_init_el=n_reg_lf[0], scramble=scramble,
+                                     n_reg_init_el=n_reg[0], n_reg_lf_init_el=n_reg_lf[0], scramble=scramble, vis_opt=vis_opt,
                                      noise_fix=noise_fix, noise_type=noise_type, max_budget=budget, acq_type=acq_type,
-                                     iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name, n_DoE=n_DoE, exp_name=exp_name)
+                                     iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name, n_DoE=n_DoE, exp_name=exp_name_el)
 
                         end_unit = time.time()
                         print('Unit run time', end_unit - start_unit)

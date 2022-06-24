@@ -775,7 +775,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
 
 
 def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=None, scramble=True, cost_ratio=10,
-                 n_inf=500, random=False, noise_fix=True, noise_type='b', n_reg_lf_init_el=None, max_budget=None,
+                 n_inf=500, random=False, noise_fix=True, noise_type='b', n_reg_lf_init_el=None, max_budget=None, vis_opt=False,
                  post_processing=False, acq_type='EI', iter_thresh=100, dev=False, opt_problem_name='exp_test', n_DoE=0, exp_name='exp_0'):
 
     bds = problem_el.bounds
@@ -819,7 +819,6 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
         scaler_y_high=None,
     )
 
-    vis_opt = 1
     if vis_opt and dim - 1 == 1:
         plt.figure(num=problem_el.objective_function.name + '_init_' + str(n_DoE))
         coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
