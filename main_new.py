@@ -958,11 +958,11 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
 
         if vis_opt and dim - 1 == 1 and n_DoE == 0:
 
-            if not os.path.exists(work_folder_name + '/img'):
-                os.mkdir(work_folder_name + '/img')
+            if not os.path.exists(work_folder_name + '/' + exp_name + '/img'):
+                os.mkdir(work_folder_name + '/' + exp_name + '/img')
 
-            if not os.path.exists(work_folder_name + '/img/' + problem_el.objective_function.name):
-                os.mkdir(work_folder_name + '/img/' + problem_el.objective_function.name)
+            if not os.path.exists(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name):
+                os.mkdir(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name)
 
             plt.figure(num=problem_el.objective_function.name + '_' + str(iteration))
             coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
