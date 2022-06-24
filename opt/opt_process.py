@@ -87,9 +87,9 @@ exp_dict = {
 #         n_reg_lf_init=n_reg_lf, max_budget=budget, post_processing=post_processing, acq_type=acq_type,
 #         iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name)
 
-for noise_type in ['b', 'n']:
+for noise_type in ['b']:
 
-    for acq_type in ['EI', 'UCB']:
+    for acq_type in ['ES']:
 
         meds_model = []
         for model_type_el in model_type:

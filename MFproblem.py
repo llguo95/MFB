@@ -266,19 +266,21 @@ class MFProblem:
                 maximize=False,
             )
         elif acq_type == 'UCB':
-            # acq = UpperConfidenceBound(
-            #     model=model,
-            #     beta=4,
-            #     maximize=False,
-            # )
-            acq = vfacq.VFUpperConfidenceBound(
-                model=model,
-                beta=4,
-                maximize=False,
-                cr=self.cost_ratio,
-                mean=mean,
-                var=var,
-            )
+            if model._get_name() != 'SingleTaskGP':
+                acq = vfacq.VFUpperConfidenceBound(
+                    model=model,
+                    beta=4,
+                    maximize=False,
+                    cr=self.cost_ratio,
+                    mean=mean,
+                    var=var,
+                )
+            else:
+                acq = UpperConfidenceBound(
+                    model=model,
+                    beta=4,
+                    maximize=False,
+                )
         elif acq_type == 'ES':
             if model._get_name() != 'SingleTaskGP':
                 acq = qMultiFidelityMaxValueEntropy(
