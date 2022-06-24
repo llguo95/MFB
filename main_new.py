@@ -964,7 +964,7 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
             if not os.path.exists(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name):
                 os.mkdir(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name)
 
-            plt.figure(num=problem_el.objective_function.name + '_' + str(iteration))
+            plt.figure(num=problem_el.objective_function.name + '_' + model_type_el + '_' + str(iteration))
             coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
             plt.plot(coord_list, test_y_list_high, 'r--', label='Predictive HF mean')
             plt.fill_between(coord_list.flatten(),
@@ -1005,7 +1005,7 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
 
             plt.savefig(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name + '/iter' + '_' + str(iteration) + '.png')
 
-            plt.figure(num='acq' + str(iteration))
+            plt.figure(num='acq' + '_' + model_type_el + str(iteration))
             if model_type_el == 'sogpr':
                 mfacq_eval = torch.stack([mfacq.forward(x[:, None]) for x in coord_list_tensor])
                 plt.plot(coord_list, mfacq_eval.detach().numpy())
