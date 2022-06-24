@@ -876,7 +876,7 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
 
     work_folder_name = 'opt_data'
     if dev:
-        work_folder_name += '_dev'
+        work_folder_name = 'opt_data_dev'
 
     if not os.path.exists(work_folder_name):
         os.mkdir(work_folder_name)
