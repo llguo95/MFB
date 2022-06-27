@@ -79,8 +79,8 @@ DoE_no = 10
 start = time.time()
 
 exp_dict = {
-    'sogpr': 'exp3_sogpr',
-    'stmf': 'exp3',
+    'sogpr': 'exp4_sogpr',
+    'stmf': 'exp4',
 }
 
 # bo_main(problem=problem, model_type=model_type, lf=lf, n_reg_init=n_reg, scramble=scramble, noise_fix=noise_fix,
@@ -89,7 +89,7 @@ exp_dict = {
 
 for noise_type in ['b']:
 
-    for acq_type in ['ES']:
+    for acq_type in ['UCB']:
 
         meds_model = []
         for model_type_el in model_type:
@@ -120,7 +120,8 @@ for noise_type in ['b']:
                     rec_csv = exp_name + '_rec.csv'
                     df_rec = pd.read_csv(rec_csv, index_col=0)
                     opt = df_rec['y - y_min'].values
-                    # print(opt)
+                    if problem_i == 27:
+                        print(df_rec['x_0'].values, opt)
                     opts.append(opt)
 
                 med = np.median(opts)

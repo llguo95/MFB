@@ -51,56 +51,58 @@ problem = [
     for f in fs
 ]
 
-model_type = ['sogpr', 'stmf']
-lf = [.9]
+model_type = ['stmf']
+lf = [.99]
 noise_types = ['b']
 acq_types = ['UCB']
-cost_ratio = 10
+cost_ratios = [10, 20, 30, 40, 50]
 n_reg = [5 ** dim]
-n_reg_lf = [cost_ratio * 5 ** (dim - 1)]
 scramble = 1
 noise_fix = 0
 budget = 5 * 3 ** (dim - 1)
-iter_thresh = 50 * 3 ** (dim - 1)
 
 print()
 print('dim = ', dim)
-print('cost_ratio = ', cost_ratio)
 
 dev = 1
-DoE_no = 10
-exp_name = 'exp4'
-vis_opt = 1
+DoE_no = 1
+exp_name = 'exp5'
+vis_opt = 0
 
 start = time.time()
 
-for noise_type in noise_types:
+for cost_ratio in cost_ratios:
+    print('cost_ratio = ', cost_ratio)
+    n_reg_lf = [cost_ratio * 5 ** (dim - 1)]
+    iter_thresh = 5 * cost_ratio * 3 ** (dim - 1)
 
-    for acq_type in acq_types:
+    for noise_type in noise_types:
 
-        opt_problem_name = str(dim) + '_' + noise_type + '_' + acq_type
+        for acq_type in acq_types:
 
-        for problem_el in problem:
+            opt_problem_name = str(dim) + '_' + noise_type + '_' + acq_type + '_cr' + str(cost_ratio)
 
-            for model_type_el in model_type:
-                if model_type_el == 'sogpr':
-                    exp_name_el = exp_name + '_sogpr'
-                else:
-                    exp_name_el = exp_name
+            for problem_el in problem:
 
-                for lf_el in lf:
+                for model_type_el in model_type:
+                    if model_type_el == 'sogpr':
+                        exp_name_el = exp_name + '_sogpr'
+                    else:
+                        exp_name_el = exp_name
 
-                    for n_DoE in range(DoE_no):
+                    for lf_el in lf:
 
-                        start_unit = time.time()
+                        for n_DoE in range(DoE_no):
 
-                        bo_main_unit(problem_el=problem_el, model_type_el=model_type_el, lf_el=lf_el, cost_ratio=cost_ratio,
-                                     n_reg_init_el=n_reg[0], n_reg_lf_init_el=n_reg_lf[0], scramble=scramble, vis_opt=vis_opt,
-                                     noise_fix=noise_fix, noise_type=noise_type, max_budget=budget, acq_type=acq_type,
-                                     iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name, n_DoE=n_DoE, exp_name=exp_name_el)
+                            start_unit = time.time()
 
-                        end_unit = time.time()
-                        print('Unit run time', end_unit - start_unit)
+                            bo_main_unit(problem_el=problem_el, model_type_el=model_type_el, lf_el=lf_el, cost_ratio=cost_ratio,
+                                         n_reg_init_el=n_reg[0], n_reg_lf_init_el=n_reg_lf[0], scramble=scramble, vis_opt=vis_opt,
+                                         noise_fix=noise_fix, noise_type=noise_type, max_budget=budget, acq_type=acq_type,
+                                         iter_thresh=iter_thresh, dev=dev, opt_problem_name=opt_problem_name, n_DoE=n_DoE, exp_name=exp_name_el)
+
+                            end_unit = time.time()
+                            print('Unit run time', end_unit - start_unit)
 
 stop = time.time()
 print('Total run time', stop - start)
