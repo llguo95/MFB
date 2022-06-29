@@ -774,7 +774,7 @@ def bo_main(problem=None, model_type=None, lf=None, n_reg_init=None, scramble=Tr
     return
 
 
-def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=None, scramble=True, cost_ratio=10,
+def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=None, scramble=True, cost_ratio=10, y_max=1, tol=.1,
                  n_inf=500, random=False, noise_fix=True, noise_type='b', n_reg_lf_init_el=None, max_budget=None, vis_opt=False,
                  post_processing=False, acq_type='EI', iter_thresh=100, dev=False, opt_problem_name='exp_test', n_DoE=0, exp_name='exp_0'):
 
@@ -856,9 +856,6 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
 
     if problem_el.objective_function.name == 'AugmentedQing':
         y_min = y_min[0]
-
-    train_x_high = torch.stack([x[:-1] for x in train_x if x[-1] == 1])
-    train_obj_high = torch.stack([y for i, y in enumerate(train_obj) if train_x[i, -1] == 1])
 
     if model_type_el != 'sogpr':
         train_x_low = torch.stack([x[:-1] for x in train_x if x[-1] != 1])
@@ -958,11 +955,13 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
 
         if vis_opt and dim - 1 == 1 and n_DoE == 0:
 
-            if not os.path.exists(work_folder_name + '/' + exp_name + '/img'):
-                os.mkdir(work_folder_name + '/' + exp_name + '/img')
+            img_folder_name = objective_path + '/img'
 
-            if not os.path.exists(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name):
-                os.mkdir(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name)
+            if not os.path.exists(img_folder_name):
+                os.mkdir(img_folder_name)
+
+            # if not os.path.exists(img_folder_name + '/' + problem_el.objective_function.name):
+            #     os.mkdir(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name)
 
             plt.figure(num=problem_el.objective_function.name + '_' + model_type_el + '_' + str(iteration))
             coord_list = uniform_grid(bl=bds[0], tr=bds[1], n=[500])
@@ -1003,9 +1002,9 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
             #           (1 + c) * np.amax(exact_y) - c * np.amin(exact_y)])
             plt.tight_layout()
 
-            plt.savefig(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name + '/iter' + '_' + str(iteration) + '.png')
+            plt.savefig(img_folder_name + '/iter_' + str(iteration) + '.png')
 
-            plt.figure(num='acq' + '_' + model_type_el + str(iteration))
+            plt.figure(num=problem_el.objective_function.name + 'acq' + '_' + model_type_el + str(iteration))
             if model_type_el == 'sogpr':
                 mfacq_eval = torch.stack([mfacq.forward(x[:, None]) for x in coord_list_tensor])
                 plt.plot(coord_list, mfacq_eval.detach().numpy())
@@ -1023,7 +1022,17 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
             plt.title(problem_el.objective_function.name + '_acq_' + str(iteration))
             plt.tight_layout()
 
-            plt.savefig(work_folder_name + '/' + exp_name + '/img/' + problem_el.objective_function.name + '/acq' + str(iteration) + '.png')
+            plt.savefig(img_folder_name + '/acq_' + str(iteration) + '.png')
+
+        if new_x[0, -1] == 1:
+            print('HF sample selected at', new_x[0])
+            print('output', torch.amin(train_obj_high).flatten())
+        rel_err = torch.abs(torch.amin(train_obj_high).flatten() - y_min) / (y_max - y_min)
+        print(rel_err)
+
+        if rel_err < tol:
+            print('Error tolerance of', tol * 100, '% reached, total opt. cost', cumulative_cost)
+            break
 
         iteration += 1
 
@@ -1036,31 +1045,45 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
         x_high_rec, y_high_rec, _ \
             = problem_el.optimize_mfacq_and_get_observation(mfacq, final=1)
 
-        # print(problem_el.objective_function(x_low_rec), y_high_rec)
-        # print(x_low_rec, x_high_rec)
-
-        y_rec = np.minimum(
-            problem_el.objective_function(x_low_rec),
-            y_high_rec
-        )
+        y_rec = np.amin((
+            problem_el.objective_function(x_low_rec).flatten().numpy(),
+            y_high_rec.flatten().numpy(),
+            torch.amin(train_obj_high).flatten().numpy()
+        ))
 
         if y_rec.flatten() == y_high_rec.flatten():
-            x_rec = x_high_rec
+            x_rec = x_high_rec[0]
+        elif y_rec.flatten() == torch.amin(train_obj_high):
+            x_rec = torch.hstack((train_x_high[np.argmin(train_obj_high)], torch.tensor([1])))
         else:
-            x_rec = x_low_rec
+            x_rec = x_low_rec[0]
 
         df_rec = pd.DataFrame(
-            np.hstack((x_rec, y_rec - y_min)),
-            columns=x_names + ['y - y_min']
+            np.hstack((x_rec,
+                       y_rec.flatten(),
+                       np.abs(y_rec.flatten() - y_min) / (y_max - y_min),
+                       cumulative_cost))[None, :],
+            columns=x_names + ['y'] + ['% error'] + ['opt cost']
         )
 
     else:
-        x_rec = train_x_high[torch.argmin(train_obj_high)]
-        y_rec = torch.amin(train_obj_high)
+        x_rec, y_rec, _ \
+            = problem_el.optimize_mfacq_and_get_observation(mfacq, final=1)
+
+        y_rec_sogpr = np.minimum(
+            y_rec.flatten().numpy(),
+            torch.amin(train_obj_high).flatten().numpy()
+        )
+
+        if y_rec_sogpr.flatten() == torch.amin(train_obj_high):
+            x_rec = train_x_high[np.argmin(train_obj_high)]
 
         df_rec = pd.DataFrame(
-            np.hstack((x_rec, y_rec - y_min))[None, :],
-            columns=x_names[:-1] + ['y - y_min']
+            np.hstack((x_rec,
+                       y_rec_sogpr.flatten(),
+                       np.abs(y_rec_sogpr.flatten() - y_min) / (y_max - y_min),
+                       cumulative_cost))[None, :],
+            columns=x_names[:-1] + ['y'] + ['% error'] + ['opt cost']
         )
 
     df = pd.DataFrame(columns=['cost', 'y - y_min'] + x_names,

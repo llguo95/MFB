@@ -41,7 +41,7 @@ print([(i, f.name) for (i, f) in enumerate(fs)])
 print()
 print([(i, f(d=1).get_global_minimum(d=1)[1]) for (i, f) in enumerate(fs)])
 
-dim = 1
+dim = 2
 noise_type = 'b'
 cost_ratio = 25
 
@@ -120,8 +120,8 @@ for noise_type in ['b']:
                     rec_csv = exp_name + '_rec.csv'
                     df_rec = pd.read_csv(rec_csv, index_col=0)
                     opt = df_rec['y - y_min'].values
-                    if problem_i == 27:
-                        print(df_rec['x_0'].values, opt)
+                    # if problem_i == 27:
+                    #     print(df_rec['x_0'].values, opt)
                     opts.append(opt)
 
                 med = np.median(opts)

@@ -92,6 +92,16 @@ class VFUpperConfidenceBound(AnalyticAcquisitionFunction):
 
             sigma = variance_high.sqrt()
 
+        omega_1, omega_2 = self.weights()
+
+        if self.maximize:
+            res = omega_1 * mean_high + omega_2 * sigma
+        else:
+            res = -omega_1 * mean_high + omega_2 * sigma
+
+        return res
+
+    def weights(self):
         sample_mean_lf = torch.mean(torch.tensor(self.mean[0]))
         sample_std_lf = torch.std(torch.tensor(self.mean[0]))
         sample_mean_hf = torch.mean(torch.tensor(self.mean[1]))
@@ -103,9 +113,4 @@ class VFUpperConfidenceBound(AnalyticAcquisitionFunction):
         omega_1 = a1 / (a1 + a2)
         omega_2 = a2 / (a1 + a2)
 
-        if self.maximize:
-            res = omega_1 * mean_high + omega_2 * sigma
-        else:
-            res = -omega_1 * mean_high + omega_2 * sigma
-
-        return res
+        return omega_1, omega_2
