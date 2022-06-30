@@ -62,15 +62,16 @@ cost_ratios = [10]
 n_reg = [5 ** dim]
 scramble = 1
 noise_fix = 0
-budget = 100 # 5 * 3 ** (dim - 1)
+budget = 50 # 5 * 3 ** (dim - 1)
+tol = 0.1
 
 print()
 print('dim = ', dim)
 
 dev = 1
 DoE_no = 1
-exp_name = 'exp5'
-vis_opt = 1
+exp_name = 'exp6'
+vis_opt = 0
 
 max_vals = pd.read_csv('../max_vals.csv', index_col=0)
 
@@ -99,7 +100,7 @@ start = time.time()
 for cost_ratio in cost_ratios:
     print('cost_ratio = ', cost_ratio)
     n_reg_lf = [cost_ratio * 5 ** (dim - 1)]
-    iter_thresh = 50 # 5 * cost_ratio * 3 ** (dim - 1)
+    iter_thresh = 100 # 5 * cost_ratio * 3 ** (dim - 1)
 
     for noise_type in noise_types:
 
@@ -123,7 +124,7 @@ for cost_ratio in cost_ratios:
                             start_unit = time.time()
 
                             bo_main_unit(problem_el=problem_el, model_type_el=model_type_el, lf_el=lf_el,
-                                         cost_ratio=cost_ratio, y_max=y_max, tol=.1,
+                                         cost_ratio=cost_ratio, y_max=y_max, tol=tol,
                                          n_reg_init_el=n_reg[0], n_reg_lf_init_el=n_reg_lf[0], scramble=scramble,
                                          vis_opt=vis_opt,
                                          noise_fix=noise_fix, noise_type=noise_type, max_budget=budget,
