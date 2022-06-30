@@ -52,10 +52,10 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-]
+][2:3]
 
 model_type = ['sogpr']
-lf = [.99]
+lf = [.9]
 noise_types = ['b']
 acq_types = ['UCB']
 cost_ratios = [10]
@@ -63,19 +63,20 @@ n_reg = [5 ** dim]
 scramble = 1
 noise_fix = 0
 budget = 50 # 5 * 3 ** (dim - 1)
-tol = 0.1
+tol = 0.001
 
 print()
 print('dim = ', dim)
 
 dev = 1
-DoE_no = 1
+DoE_no = 10
 exp_name = 'exp6'
 vis_opt = 0
 
 max_vals = pd.read_csv('../max_vals.csv', index_col=0)
 
 benchmark_dict = dict(
+    dim=dim,
     problem=[p.objective_function.name for p in problem],
     model_type=model_type,
     lf=lf,
@@ -90,6 +91,7 @@ benchmark_dict = dict(
     DoE_no=DoE_no,
     exp_name=exp_name,
     vis_opt=vis_opt,
+    tol=tol,
 )
 
 dict_file = open(exp_name + '.pkl', 'wb')
@@ -133,7 +135,7 @@ for cost_ratio in cost_ratios:
                                          n_DoE=n_DoE, exp_name=exp_name_el)
 
                             end_unit = time.time()
-                            print('Unit run time', end_unit - start_unit)
+                            # print('Unit run time', end_unit - start_unit)
 
 stop = time.time()
 print('Total run time', stop - start)

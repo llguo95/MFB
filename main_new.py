@@ -897,6 +897,8 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
 
     DoE_no_path = model_problem_path + '/' + str(n_DoE)
 
+    print()
+
     while cumulative_cost < max_budget and iteration < iter_thresh:
         if iteration % 5 == 0: print('iteration', iteration, ',',
                                      float(100 * cumulative_cost / max_budget),
@@ -1024,11 +1026,11 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
 
             plt.savefig(img_folder_name + '/acq_' + str(iteration) + '.png')
 
-        if new_x[0, -1] == 1:
-            print('HF sample selected at', new_x[0])
-            print('output', torch.amin(train_obj_high).flatten())
+        # if new_x[0, -1] == 1:
+        #     print('HF sample selected at', new_x[0])
+        #     print('output', torch.amin(train_obj_high).flatten())
         rel_err = torch.abs(torch.amin(train_obj_high).flatten() - y_min) / (y_max - y_min)
-        print(rel_err)
+        # print(rel_err)
 
         if rel_err < tol:
             print('Error tolerance of', tol * 100, '% reached, total opt. cost', cumulative_cost)
@@ -1061,7 +1063,7 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
         df_rec = pd.DataFrame(
             np.hstack((x_rec,
                        y_rec.flatten(),
-                       np.abs(y_rec.flatten() - y_min) / (y_max - y_min),
+                       np.abs(y_rec.flatten() - y_min) / (y_max - y_min) * 100,
                        cumulative_cost))[None, :],
             columns=x_names + ['y'] + ['% error'] + ['opt cost']
         )
@@ -1075,13 +1077,13 @@ def bo_main_unit(problem_el=None, model_type_el=None, lf_el=None, n_reg_init_el=
             torch.amin(train_obj_high).flatten().numpy()
         )
 
-        if y_rec_sogpr.flatten() == torch.amin(train_obj_high):
+        if y_rec_sogpr.flatten() == torch.amin(train_obj_high).flatten().numpy():
             x_rec = train_x_high[np.argmin(train_obj_high)]
 
         df_rec = pd.DataFrame(
             np.hstack((x_rec,
                        y_rec_sogpr.flatten(),
-                       np.abs(y_rec_sogpr.flatten() - y_min) / (y_max - y_min),
+                       np.abs(y_rec_sogpr.flatten() - y_min) / (y_max - y_min) * 100,
                        cumulative_cost))[None, :],
             columns=x_names[:-1] + ['y'] + ['% error'] + ['opt cost']
         )
