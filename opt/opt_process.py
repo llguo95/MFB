@@ -104,14 +104,22 @@ for cost_ratio in exp_dict['cost_ratios']:
 
                     for lf_el in exp_dict['lf']:
 
-                        opt_problem_name = str(1) + '_' + noise_type + '_' + acq_type + '_cr' + str(
-                            cost_ratio) + '_lf' + str(lf_el) + '_tol0.01'
+                        opt_problem_name = str(exp_dict['dim']) + '_' + noise_type + '_' + acq_type + '_cr' + str(
+                            cost_ratio) + '_lf' + str(lf_el)
 
+                        pevals = []
+                        ocvals = []
                         for n_DoE in range(exp_dict['DoE_no']):
-                            df_path = 'opt_data/' + exp_name_el + '/' + opt_problem_name + '/' \
+                            df_path = 'opt_data_dev/' + exp_name_el + '/' + opt_problem_name + '/' \
                                       + problem_name + '/' + model_type_el + '/' + str(n_DoE) + '_rec.csv'
                             df = pd.read_csv(df_path, index_col=0)
-                            print(problem_name, df)
+                            print(df['% error'].values, df['opt cost'].values)
+                            pevals.append(df['% error'].values)
+                            ocvals.append(df['opt cost'].values)
+
+                        pemed = np.median(pevals)
+                        ocmed = np.median(ocvals)
+                        print(pemed, ocmed)
 
 # for noise_type in ['b']:
 #

@@ -52,18 +52,18 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-][2:3]
+]
 
 model_type = ['sogpr']
 lf = [.9]
 noise_types = ['b']
 acq_types = ['UCB']
 cost_ratios = [10]
-n_reg = [5 ** dim]
+n_reg = [6 * 5 ** (dim - 1)]
 scramble = 1
 noise_fix = 0
 budget = 50 # 5 * 3 ** (dim - 1)
-tol = 0.001
+tol = 0.005
 
 print()
 print('dim = ', dim)
