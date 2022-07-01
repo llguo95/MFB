@@ -41,7 +41,7 @@ print([(i, f.name) for (i, f) in enumerate(fs)])
 print()
 print([(i, f(d=1).get_global_minimum(d=1)[1]) for (i, f) in enumerate(fs)])
 
-dim = 1
+dim = 3
 
 problem = [
     MFProblem(
@@ -59,18 +59,18 @@ lf = [.9]
 noise_types = ['b']
 acq_types = ['UCB']
 cost_ratios = [10]
-n_reg = [6 * 5 ** (dim - 1)]
+n_reg = [10]
 scramble = 1
 noise_fix = 0
-budget = 50 # 5 * 3 ** (dim - 1)
-tol = 0.005
+budget = 20 # 5 * 3 ** (dim - 1)
+tol = 0.02
 
 print()
 print('dim = ', dim)
 
 dev = 1
 DoE_no = 10
-exp_name = 'exp6'
+exp_name = 'exp_challenge2'
 vis_opt = 0
 
 max_vals = pd.read_csv('../max_vals.csv', index_col=0)
@@ -102,7 +102,7 @@ start = time.time()
 for cost_ratio in cost_ratios:
     print('cost_ratio = ', cost_ratio)
     n_reg_lf = [cost_ratio * 5 ** (dim - 1)]
-    iter_thresh = 100 # 5 * cost_ratio * 3 ** (dim - 1)
+    iter_thresh = 200 # 5 * cost_ratio * 3 ** (dim - 1)
 
     for noise_type in noise_types:
 
