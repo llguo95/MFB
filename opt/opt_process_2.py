@@ -18,16 +18,16 @@ tkwargs = {
     "device": torch.device("cpu"),
 }
 
+dim = 2
+
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
 excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
 fs = [f for f in f_class_list if f.name not in excluded_fs]
 print()
 print([(i, f.name) for (i, f) in enumerate(fs)])
 print()
-print([(i, f(d=1).get_global_minimum(d=1)[1]) for (i, f) in enumerate(fs)])
+print([(i, f(d=dim).get_global_minimum(d=dim)[1]) for (i, f) in enumerate(fs)])
 print()
-
-dim = 2
 
 problem = [
     MFProblem(
@@ -40,7 +40,7 @@ problem = [
     for f in fs
 ]#[:15]
 
-model_type = ['sogpr']
+model_type = ['sogpr', 'stmf']
 lf = [.9]
 noise_types = ['b']
 acq_types = ['UCB']
@@ -56,12 +56,10 @@ print('dim = ', dim)
 
 dev = 1
 DoE_no = 10
-exp_name = 'exp_challenge'
+exp_name = 'exp8'
 vis_opt = 0
 
 start = time.time()
-
-# exp_name = 'exp6'
 
 # dict_file = open(exp_name + '.pkl', 'rb')
 exp_dict = dict(
@@ -83,6 +81,9 @@ exp_dict = dict(
     tol=tol,
 )
 
+# restricted_problem = [name for i, name in enumerate(exp_dict['problem']) if i in [0, 2, 5, 7, 12, 15, 16, 25, 26, 27]]
+restricted_problem = exp_dict['problem']
+
 for cost_ratio in exp_dict['cost_ratios']:
 
     for noise_type in exp_dict['noise_types']:
@@ -98,10 +99,18 @@ for cost_ratio in exp_dict['cost_ratios']:
             )
 
             for model_type_el in exp_dict['model_type']:
+                # if model_type_el == 'sogpr':
+                #     exp_name = 'exp7'
+                #     cost_ratio = 10
+                # else:
+                #     exp_name = 'exp7c'
+                #     cost_ratio = 15
 
-                for problem_name in exp_dict['problem']:
-                    print()
-                    print(problem_name, model_type_el)
+                # for problem_i, problem_name in enumerate(exp_dict['problem']):
+                for problem_name in restricted_problem:
+                    # if problem_i not in [0, 2, 5, 7, 12, 15, 16, 25, 26, 27]: continue
+                    # print()
+                    # print(problem_name, model_type_el)
                     if model_type_el == 'sogpr':
                         exp_name_el = exp_name + '_sogpr'
                     else:
@@ -118,7 +127,7 @@ for cost_ratio in exp_dict['cost_ratios']:
                             df_path = 'opt_data/' + exp_name_el + '/' + opt_problem_name + '/' \
                                       + problem_name + '/' + model_type_el + '/' + str(n_DoE) + '_rec.csv'
                             df = pd.read_csv(df_path, index_col=0)
-                            print(df['% error'].values, df['opt cost'].values)
+                            # print(df['% error'].values, df['opt cost'].values)
                             pevals.append(df['% error'].values)
                             ocvals.append(df['opt cost'].values)
 
@@ -134,17 +143,19 @@ for cost_ratio in exp_dict['cost_ratios']:
 
                 plt.figure('pemed')
                 plt.hist(np.log10([p + 1e-6 for p in pemeds[model_type_el]]), ec='k', bins=30, label=model_type_el, alpha=.5)
-                print(pemeds[model_type_el])
-                print(np.median(pemeds[model_type_el]))
-                plt.legend()
-                plt.figure('ocmed')
-                plt.hist(ocmeds[model_type_el], ec='k', bins=30, label=model_type_el, alpha=.5)
-                print(ocmeds[model_type_el])
-                print(np.median(ocmeds[model_type_el]))
+                print(list(zip(enumerate(restricted_problem), pemeds[model_type_el])))
+                print(np.median(pemeds[model_type_el]), 'median % error')
                 plt.legend()
 
-# print()
-# print(pemeds)
-# print(ocmeds)
+                plt.figure('ocmed')
+                plt.hist(ocmeds[model_type_el], ec='k', bins=30, label=model_type_el, alpha=.5)
+                print(list(zip(enumerate(restricted_problem), ocmeds[model_type_el])))
+                print(np.median(ocmeds[model_type_el]), 'median expended opt. cost')
+                plt.legend()
+
+            # print(list(zip(exp_dict['problem'],
+            #                np.array(pemeds['sogpr']) - np.array(pemeds['stmf']))))
+            # print(list(zip(exp_dict['problem'],
+            #                np.array(ocmeds['sogpr']) - np.array(ocmeds['stmf']) - 0.9)))
 
 plt.show()
