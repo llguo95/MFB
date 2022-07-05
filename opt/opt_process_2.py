@@ -56,7 +56,7 @@ print('dim = ', dim)
 
 dev = 1
 DoE_no = 10
-exp_name = 'exp8'
+exp_name = 'exp7d'
 vis_opt = 0
 
 start = time.time()
@@ -81,8 +81,8 @@ exp_dict = dict(
     tol=tol,
 )
 
-# restricted_problem = [name for i, name in enumerate(exp_dict['problem']) if i in [0, 2, 5, 7, 12, 15, 16, 25, 26, 27]]
-restricted_problem = exp_dict['problem']
+restricted_problem = [name for i, name in enumerate(exp_dict['problem']) if i in [0, 2, 5, 7, 12, 15, 16, 25, 26, 27]]
+# restricted_problem = exp_dict['problem']
 
 for cost_ratio in exp_dict['cost_ratios']:
 
@@ -99,12 +99,12 @@ for cost_ratio in exp_dict['cost_ratios']:
             )
 
             for model_type_el in exp_dict['model_type']:
-                # if model_type_el == 'sogpr':
-                #     exp_name = 'exp7'
-                #     cost_ratio = 10
-                # else:
-                #     exp_name = 'exp7c'
-                #     cost_ratio = 15
+                if model_type_el == 'sogpr':
+                    exp_name = 'exp8'
+                    cost_ratio = 10
+                else:
+                    exp_name = 'exp8'
+                    cost_ratio = 10
 
                 # for problem_i, problem_name in enumerate(exp_dict['problem']):
                 for problem_name in restricted_problem:
