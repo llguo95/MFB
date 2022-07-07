@@ -41,7 +41,7 @@ print([(i, f.name) for (i, f) in enumerate(fs)])
 print()
 print([(i, f(d=1).get_global_minimum(d=1)[1]) for (i, f) in enumerate(fs)])
 
-dim = 2
+dim = 1
 
 problem = [
     MFProblem(
@@ -54,15 +54,15 @@ problem = [
     for f in fs
 ]
 
-model_type = ['sogpr', 'stmf']
-lf = [.9]
+model_type = ['stmf']
+lf = [.3, .7]
 noise_types = ['b']
 acq_types = ['UCB']
 cost_ratios = [10]
-n_reg = [8]
+n_reg = [5]
 scramble = 1
 noise_fix = 0
-budget = 30 # 5 * 3 ** (dim - 1)
+budget = 10 # 5 * 3 ** (dim - 1)
 tol = 0.02
 
 print()
@@ -70,7 +70,7 @@ print('dim = ', dim)
 
 dev = 1
 DoE_no = 10
-exp_name = 'exp_9'
+exp_name = 'exp7'
 vis_opt = 0
 
 max_vals = pd.read_csv('../max_vals.csv', index_col=0)
@@ -98,7 +98,7 @@ start = time.time()
 
 for cost_ratio in cost_ratios:
     print('cost_ratio = ', cost_ratio)
-    n_reg_lf = [20] # [cost_ratio * 5 ** (dim - 1)]
+    n_reg_lf = [10] # [cost_ratio * 5 ** (dim - 1)]
     iter_thresh = cost_ratio * budget # 5 * cost_ratio * 3 ** (dim - 1)
 
     for noise_type in noise_types:
@@ -106,7 +106,7 @@ for cost_ratio in cost_ratios:
         for acq_type in acq_types:
 
             for problem_i, problem_el in enumerate(problem):
-                if problem_i not in [0, 2, 5, 7, 12, 15, 16, 25, 26, 27]: continue
+                # if problem_i not in [0, 2, 5, 7, 12, 15, 16, 25, 26, 27]: continue
                 y_max = max_vals.loc[problem_el.objective_function.name[9:], str(dim)]
 
                 for model_type_el in model_type:

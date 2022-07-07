@@ -18,7 +18,7 @@ tkwargs = {
     "device": torch.device("cpu"),
 }
 
-dim = 2
+dim = 1
 
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
 excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
@@ -38,10 +38,10 @@ problem = [
         ).to(**tkwargs)
     )
     for f in fs
-]#[:15]
+]
 
 model_type = ['sogpr', 'stmf']
-lf = [.9]
+lf = [.25]
 noise_types = ['b']
 acq_types = ['UCB']
 cost_ratios = [10]
@@ -56,7 +56,7 @@ print('dim = ', dim)
 
 dev = 1
 DoE_no = 10
-exp_name = 'exp7d'
+exp_name = 'exp7'
 vis_opt = 0
 
 start = time.time()
@@ -100,10 +100,10 @@ for cost_ratio in exp_dict['cost_ratios']:
 
             for model_type_el in exp_dict['model_type']:
                 if model_type_el == 'sogpr':
-                    exp_name = 'exp8'
+                    exp_name = 'exp7'
                     cost_ratio = 10
                 else:
-                    exp_name = 'exp8'
+                    exp_name = 'exp7'
                     cost_ratio = 10
 
                 # for problem_i, problem_name in enumerate(exp_dict['problem']):
@@ -118,8 +118,11 @@ for cost_ratio in exp_dict['cost_ratios']:
 
                     for lf_el in exp_dict['lf']:
 
+                        if model_type_el == 'sogpr':
+                            lf_el = 0.9
+
                         opt_problem_name = str(exp_dict['dim']) + '_' + noise_type + '_' + acq_type + '_cr' + str(
-                            cost_ratio) + '_lf' + str(lf_el)
+                            cost_ratio) + '_lf' + str(lf_el) #+ '_nh12_nl80'
 
                         pevals = []
                         ocvals = []
