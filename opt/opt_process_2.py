@@ -41,7 +41,7 @@ problem = [
 ]
 
 model_type = ['sogpr', 'stmf']
-lf = [.25]
+lf = [.9]
 noise_types = ['b']
 acq_types = ['UCB']
 cost_ratios = [10]
@@ -105,6 +105,7 @@ for cost_ratio in exp_dict['cost_ratios']:
                 else:
                     exp_name = 'exp7'
                     cost_ratio = 10
+                    noise_type = 'n'
 
                 # for problem_i, problem_name in enumerate(exp_dict['problem']):
                 for problem_name in restricted_problem:
@@ -118,11 +119,11 @@ for cost_ratio in exp_dict['cost_ratios']:
 
                     for lf_el in exp_dict['lf']:
 
-                        if model_type_el == 'sogpr':
+                        if model_type_el == 'stmf':
                             lf_el = 0.9
 
                         opt_problem_name = str(exp_dict['dim']) + '_' + noise_type + '_' + acq_type + '_cr' + str(
-                            cost_ratio) + '_lf' + str(lf_el) #+ '_nh12_nl80'
+                            cost_ratio) + '_lf' + str(lf_el) #+ '_nh15_nl50'
 
                         pevals = []
                         ocvals = []
@@ -161,4 +162,4 @@ for cost_ratio in exp_dict['cost_ratios']:
             # print(list(zip(exp_dict['problem'],
             #                np.array(ocmeds['sogpr']) - np.array(ocmeds['stmf']) - 0.9)))
 
-plt.show()
+# plt.show()
