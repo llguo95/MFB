@@ -55,9 +55,9 @@ problem = [
 ]
 
 model_type = ['stmf']
-lf = [.3, .7]
+lf = [.9]
 noise_types = ['b']
-acq_types = ['UCB']
+acq_types = ['EI', 'UCB', 'ES']
 cost_ratios = [10]
 n_reg = [5]
 scramble = 1
@@ -70,7 +70,7 @@ print('dim = ', dim)
 
 dev = 1
 DoE_no = 10
-exp_name = 'exp7'
+exp_name = 'exp10'
 vis_opt = 0
 
 max_vals = pd.read_csv('../max_vals.csv', index_col=0)
@@ -106,7 +106,7 @@ for cost_ratio in cost_ratios:
         for acq_type in acq_types:
 
             for problem_i, problem_el in enumerate(problem):
-                # if problem_i not in [0, 2, 5, 7, 12, 15, 16, 25, 26, 27]: continue
+                if problem_i not in [0, 2, 5, 7, 12, 15, 16, 25, 26, 27]: continue
                 y_max = max_vals.loc[problem_el.objective_function.name[9:], str(dim)]
 
                 for model_type_el in model_type:
@@ -118,7 +118,8 @@ for cost_ratio in cost_ratios:
                     for lf_el in lf:
 
                         opt_problem_name = str(dim) + '_' + noise_type + '_' + acq_type + '_cr' + str(
-                            cost_ratio) + '_lf' + str(lf_el) + '_nh' + str(n_reg[0]) + '_nl' + str(n_reg_lf[0])
+                            cost_ratio) + '_lf' + str(lf_el) + '_nh' + str(n_reg[0]) + '_nl' + str(n_reg_lf[0])\
+                                           + '_acq' + acq_type
 
                         for n_DoE in range(DoE_no):
                             start_unit = time.time()

@@ -18,7 +18,7 @@ tkwargs = {
     "device": torch.device("cpu"),
 }
 
-dim = 1
+dim = 2
 
 f_class_list = pybenchfunction.get_functions(d=None, randomized_term=False)
 excluded_fs = ['Ackley N. 4', 'Brown', 'Langermann', 'Michalewicz', 'Rosenbrock', 'Shubert', 'Shubert N. 3', 'Shubert N. 4']
@@ -56,7 +56,7 @@ print('dim = ', dim)
 
 dev = 1
 DoE_no = 10
-exp_name = 'exp7'
+exp_name = 'exp9'
 vis_opt = 0
 
 start = time.time()
@@ -100,12 +100,15 @@ for cost_ratio in exp_dict['cost_ratios']:
 
             for model_type_el in exp_dict['model_type']:
                 if model_type_el == 'sogpr':
-                    exp_name = 'exp7'
+                    exp_name = 'exp9'
                     cost_ratio = 10
+                    nh = 10
+                    noise_type = 'b'
                 else:
-                    exp_name = 'exp7'
+                    exp_name = 'exp9'
                     cost_ratio = 10
-                    noise_type = 'n'
+                    noise_type = 'b'
+                    nh = 8
 
                 # for problem_i, problem_name in enumerate(exp_dict['problem']):
                 for problem_name in restricted_problem:
@@ -119,11 +122,13 @@ for cost_ratio in exp_dict['cost_ratios']:
 
                     for lf_el in exp_dict['lf']:
 
-                        if model_type_el == 'stmf':
+                        if model_type_el == 'sogpr':
+                            lf_el = 0.9
+                        else:
                             lf_el = 0.9
 
                         opt_problem_name = str(exp_dict['dim']) + '_' + noise_type + '_' + acq_type + '_cr' + str(
-                            cost_ratio) + '_lf' + str(lf_el) #+ '_nh15_nl50'
+                            cost_ratio) + '_lf' + str(lf_el) + '_nh' + str(nh) + '_nl20'
 
                         pevals = []
                         ocvals = []
@@ -161,5 +166,10 @@ for cost_ratio in exp_dict['cost_ratios']:
             #                np.array(pemeds['sogpr']) - np.array(pemeds['stmf']))))
             # print(list(zip(exp_dict['problem'],
             #                np.array(ocmeds['sogpr']) - np.array(ocmeds['stmf']) - 0.9)))
+
+            df = pd.DataFrame(data=[[p[9:] for p in restricted_problem],
+                                    np.round(pemeds['sogpr'], 2),
+                                    np.round(pemeds['stmf'], 2)]).T
+            print(df)
 
 # plt.show()

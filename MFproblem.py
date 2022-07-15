@@ -266,6 +266,12 @@ class MFProblem:
                 maximize=False,
             )
         elif acq_type == 'UCB':
+            acq = UpperConfidenceBound(
+                model=model,
+                beta=4,
+                maximize=False,
+            )
+        elif acq_type == 'VFUCB':
             if model._get_name() != 'SingleTaskGP':
                 acq = vfacq.VFUpperConfidenceBound(
                     model=model,
